@@ -2,7 +2,7 @@
 
 ## Usage notes
 
-- Keep the canonical packet schema stable once downstream stages depend on it.
+- Keep the canonical packet schema stable once downstream modules depend on it.
 - Preserve field names required by the directional 5-tuple contract.
 - Keep packet-order columns deterministic because systematic packet sampling depends on them.
 

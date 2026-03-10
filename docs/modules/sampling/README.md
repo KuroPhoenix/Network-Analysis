@@ -4,9 +4,9 @@
 
 The `sampling` module will produce `1:X` sampled packet streams or sampled flow reconstructions that remain directly comparable to the `1:1` baseline.
 
-## Stage 1 scope
+## Current scope
 
-At Stage 1, this module is a documented placeholder. No sampling emulation or sampled-trace ingestion logic is implemented yet.
+This module is still a documented placeholder. No sampling emulation or sampled-trace ingestion logic is implemented yet.
 
 ## Inputs
 
@@ -28,7 +28,7 @@ At Stage 1, this module is a documented placeholder. No sampling emulation or sa
 
 ## Assumptions and limitations
 
-- Stage 1 does not yet implement deterministic or stochastic sampling procedures.
+- This module does not yet implement deterministic or stochastic sampling procedures.
 - Matching logic against the baseline belongs to `metrics`, not to this module.
 
 ## Upstream and downstream contracts

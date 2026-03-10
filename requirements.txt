@@ -1,0 +1,7 @@
+setuptools>=69
+wheel>=0.43
+-e .
+PyYAML>=6.0
+polars>=1.30.0
+dpkt>=1.9.8
+pytest>=8.0

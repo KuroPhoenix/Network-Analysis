@@ -4,9 +4,9 @@
 
 The `metrics` module will compare sampled outputs against the `1:1` baseline and compute completeness and distortion metrics for each sampling rate.
 
-## Stage 1 scope
+## Current scope
 
-At Stage 1, this module is a documented placeholder. Matching logic and metric computation are not implemented yet.
+This module is still a documented placeholder. Matching logic and metric computation are not implemented yet.
 
 ## Inputs
 
@@ -28,7 +28,7 @@ At Stage 1, this module is a documented placeholder. Matching logic and metric c
 
 ## Assumptions and limitations
 
-- Stage 1 does not yet define the exact matching algorithm or output schema fields in code.
+- This module does not yet define the exact matching algorithm or output schema fields in code.
 - Derived metrics must stay aligned with the repository formulas once implemented.
 
 ## Upstream and downstream contracts

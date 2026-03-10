@@ -4,9 +4,9 @@
 
 The `flow_construction` module will reconstruct directional `1:1` baseline flows from canonical packet tables using the shared flow key and inactivity timeout rules.
 
-## Stage 1 scope
+## Current scope
 
-At Stage 1, this module is a documented placeholder. Baseline flow reconstruction logic is not implemented yet.
+This module is still a documented placeholder. Baseline flow reconstruction logic is not implemented yet.
 
 ## Inputs
 
@@ -18,7 +18,7 @@ At Stage 1, this module is a documented placeholder. Baseline flow reconstructio
 ## Outputs
 
 - Baseline flow tables for the `1:1` ground-truth case.
-- Flow-level metadata needed by later sampling and metric stages.
+- Flow-level metadata needed by later sampling and metrics modules.
 
 ## Methodology and implementation logic
 
@@ -29,7 +29,7 @@ At Stage 1, this module is a documented placeholder. Baseline flow reconstructio
 
 ## Assumptions and limitations
 
-- Stage 1 does not yet reconstruct flows or write Parquet flow tables.
+- This module does not yet reconstruct flows or write Parquet flow tables.
 - Later implementations must keep packets and bytes explicitly separated when both are supported.
 
 ## Upstream and downstream contracts

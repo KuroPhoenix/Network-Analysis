@@ -165,7 +165,7 @@ def _stage_registry_row(row: dict[str, object], staged_dir: Path) -> list[dict[s
 
     if compression_type == CompressionType.RAR:
         raise ValueError(
-            f"RAR archives are not supported by the local MVP ingest stage without extra tooling: {source_file}"
+            f"RAR archives are not supported by the local MVP ingest module without extra tooling: {source_file}"
         )
 
     raise ValueError(f"Unsupported compression type during ingest: {source_file}")

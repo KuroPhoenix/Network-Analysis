@@ -36,7 +36,7 @@ This module is now implemented for the local MVP start. It supports direct `.pca
 ## Assumptions and limitations
 
 - `.zip` archives are supported only for members that end with `.pcap` or `.pcapng`.
-- `wire_len` recovery or archive-specific metadata is not handled here; this stage only stages readable captures and records provenance.
+- `wire_len` recovery or archive-specific metadata is not handled here; this module only stages readable captures and records provenance.
 - Parquet applies only to the ingest manifest; the staged capture files themselves remain packet-capture files.
 
 ## Upstream and downstream contracts

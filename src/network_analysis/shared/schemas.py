@@ -19,7 +19,7 @@ DATASET_REGISTRY_SCHEMA = TableSchema(
         TableColumn(
             "inactivity_timeout_seconds",
             "int64",
-            "Configured inactivity timeout used by downstream stages.",
+            "Configured inactivity timeout used by downstream modules.",
         ),
         TableColumn("size_basis", "string", "Configured size basis selection."),
         TableColumn("byte_basis", "string", "Configured byte definition when bytes are requested."),

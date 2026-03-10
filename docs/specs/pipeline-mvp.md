@@ -21,8 +21,8 @@ This MVP should be suitable for later containerisation and submission to the lab
 ### 1. Ground-truth first
 Always process the unsampled full trace first. The `1:1` case is the ground-truth baseline. Every sampled `1:X` result must be compared directly against that baseline.
 
-### 2. Modular stages
-Each pipeline stage must be implemented as a separate module with a clear input contract, output contract, and validation boundary.
+### 2. Modular pipeline modules
+Each pipeline module must be implemented as a separate module with a clear input contract, output contract, and validation boundary.
 
 ### 3. Thin orchestration
 The final runnable entrypoint should be a **thin driver** that composes the pipeline modules. It must not hide methodology decisions or contain the core business logic.
@@ -34,7 +34,7 @@ The MVP must work correctly and reproducibly on a single machine before optimisa
 The default implementation path must be CPU-based and deterministic. GPU acceleration is optional and should only be introduced later for dataframe-heavy aggregation work where it materially helps.
 
 ### 6. Inspectable intermediate artefacts
-Intermediate results should be preserved in compact, structured formats so that errors can be traced stage by stage.
+Intermediate results should be preserved in compact, structured formats so that errors can be traced module by module.
 
 ### 7. Parquet over CSV
 Do not use raw CSV as the primary intermediate format for packet-scale data. Prefer Parquet for packet tables, flow tables, metric tables, and other structured intermediate outputs.
@@ -61,7 +61,7 @@ These documents must be kept consistent with the implemented behaviour, interfac
 
 ## Scope of the MVP
 
-### Stage naming note
+### Module naming note
 `AGENTS.md` defines the canonical conceptual pipeline as:
 
 1. dataset registry and validation
@@ -75,7 +75,7 @@ These documents must be kept consistent with the implemented behaviour, interfac
 
 This MVP specification describes the detailed implementation scope starting at ingest, but the codebase should still reserve a distinct `dataset_registry` module and should prefer **named pipeline modules** over numeric stage IDs in imports, file names, and documentation. This avoids ambiguity between the repo-wide conceptual pipeline and the narrower MVP implementation sequence.
 
-The MVP must cover these stages:
+The MVP must cover these modules:
 
 1. **Ingest / decompress**
 2. **Packet extraction to canonical packet table**
@@ -103,7 +103,7 @@ The MVP does **not** need to include:
 The MVP must accept packet captures in **PCAP or PCAPNG** format.
 
 ### Compression
-The ingest stage may also accept compressed archives when practical, such as `.gz`, `.xz`, `.zip`, or `.rar`, provided the decompression path is explicit and the original raw file remains untouched.
+The ingest module may also accept compressed archives when practical, such as `.gz`, `.xz`, `.zip`, or `.rar`, provided the decompression path is explicit and the original raw file remains untouched.
 
 ### Dataset requirements
 The intended research workflow assumes:
@@ -191,9 +191,9 @@ This applies especially to:
 
 ---
 
-## Stage-by-stage specification
+## Module-by-module specification
 
-## Stage 1: Ingest / decompress
+## Module 1: Ingest / decompress
 
 ### Purpose
 Discover raw input files, validate their basic format, and decompress them into a staged area without modifying the original raw artefacts.
@@ -225,7 +225,7 @@ Discover raw input files, validate their basic format, and decompress them into 
 
 ---
 
-## Stage 2: Packet extraction
+## Module 2: Packet extraction
 
 ### Purpose
 Convert each staged packet capture into a canonical packet table suitable for flow reconstruction.
@@ -264,11 +264,11 @@ Optional fields may be added if clearly documented.
 ### Validation
 - schema matches the required packet table contract;
 - a tiny sample capture can be extracted successfully;
-- output is readable by the flow-construction stage.
+- output is readable by the flow-construction module.
 
 ---
 
-## Stage 3: Ground-truth flow construction
+## Module 3: Ground-truth flow construction
 
 ### Purpose
 Reconstruct directional flow records from the unsampled packet table.
@@ -304,7 +304,7 @@ A baseline flow table with, at minimum:
 
 ---
 
-## Stage 4: Sampling emulation or sampled reconstruction
+## Module 4: Sampling emulation or sampled reconstruction
 
 ### Purpose
 Produce sampled packet streams or sampled flow reconstructions under one or more `1:X` packet-sampling conditions.
@@ -331,12 +331,12 @@ Produce sampled packet streams or sampled flow reconstructions under one or more
 ### Validation
 - `1:1` path behaves as the no-loss reference case;
 - at least one `1:X` sampling path runs successfully;
-- sampled outputs are consumable by the metric stage;
+- sampled outputs are consumable by the metrics module;
 - provenance and sampling settings are recorded explicitly.
 
 ---
 
-## Stage 5: Metric computation
+## Module 5: Metric computation
 
 ### Purpose
 Match sampled flow records to baseline flows and compute flow detection and distortion metrics.
@@ -381,7 +381,7 @@ At minimum:
 
 ---
 
-## Stage 6: Thin driver / orchestrator
+## Module 6: Thin driver / orchestrator
 
 ### Purpose
 Provide one runnable local command that composes the implemented modules into an end-to-end MVP.
@@ -391,7 +391,7 @@ Provide one runnable local command that composes the implemented modules into an
 - input dataset path;
 - output directory;
 - selected sampling rates;
-- optional stage-selection flags if partial runs are supported.
+- optional module-selection flags if partial runs are supported.
 
 ### Outputs
 - staged files;
@@ -413,7 +413,7 @@ Provide one runnable local command that composes the implemented modules into an
 
 ---
 
-## Stage 7: Minimal plotting
+## Module 7: Minimal plotting
 
 ### Purpose
 Produce at least one minimal visual output that demonstrates the end-to-end pipeline is working.
@@ -426,7 +426,7 @@ Choose one or more of:
 - CDF or histogram of flow sending rate overestimation factor.
 
 ### Inputs
-- metric tables from Stage 5.
+- metric tables from Module 5.
 
 ### Outputs
 - one or more static figure files;
@@ -434,7 +434,7 @@ Choose one or more of:
 
 ### Rules
 - plotting is secondary to correctness;
-- keep the plotting stage lightweight and reproducible;
+- keep the plotting module lightweight and reproducible;
 - use clear labels, including unit basis where relevant.
 
 ### Validation
@@ -567,7 +567,7 @@ At minimum, include tests for:
 
 The MVP is complete when all of the following are true:
 
-1. the repository contains modular stage implementations for the core pipeline;
+1. the repository contains modular implementations of the core pipeline modules;
 2. the repository contains a thin driver/orchestrator;
 3. a small local example can run end to end;
 4. baseline and sampled outputs are written in inspectable structured formats;

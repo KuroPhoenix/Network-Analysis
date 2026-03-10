@@ -13,7 +13,7 @@ class SizeBasis(StrEnum):
 
 
 class SamplingMethod(StrEnum):
-    """Sampling methods available to later stages."""
+    """Sampling methods available to later modules."""
 
     SYSTEMATIC = "systematic"
     RANDOM = "random"
@@ -33,7 +33,7 @@ class CaptureFormat(StrEnum):
 
 
 class CompressionType(StrEnum):
-    """Compression wrappers supported by the MVP ingest stage."""
+    """Compression wrappers supported by the MVP ingest module."""
 
     NONE = "none"
     GZIP = "gzip"

@@ -6,9 +6,9 @@ import argparse
 from pathlib import Path
 from typing import Sequence
 
-from network_analysis.modules.base import ModuleNotImplementedError
-from network_analysis.pipeline.driver import render_pipeline_plan, run_pipeline
-from network_analysis.shared.config import ConfigError, load_pipeline_config
+from .modules.base import ModuleNotImplementedError
+from .pipeline.driver import render_pipeline_plan, run_pipeline
+from .shared.config import ConfigError, load_pipeline_config
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -36,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run_parser = subparsers.add_parser(
         "run",
-        help="Run the pipeline. In the current MVP state only --dry-run is expected to succeed.",
+        help="Run the pipeline. Until all modules are implemented, --dry-run is the safe reference path.",
     )
     run_parser.add_argument(
         "--dry-run",

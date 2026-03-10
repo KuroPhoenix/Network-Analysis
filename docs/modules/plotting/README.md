@@ -4,9 +4,9 @@
 
 The `plotting` module will turn metric tables into minimal reproducible visual outputs that demonstrate the pipeline is working end to end.
 
-## Stage 1 scope
+## Current scope
 
-At Stage 1, this module is a documented placeholder. No plotting backend or figure generation logic is implemented yet.
+This module is still a documented placeholder. No plotting backend or figure generation logic is implemented yet.
 
 ## Inputs
 
@@ -26,7 +26,7 @@ At Stage 1, this module is a documented placeholder. No plotting backend or figu
 
 ## Assumptions and limitations
 
-- Stage 1 does not yet choose a plotting library.
+- This module does not yet choose a plotting library.
 - Figure specifications may remain minimal until metric tables exist.
 
 ## Upstream and downstream contracts

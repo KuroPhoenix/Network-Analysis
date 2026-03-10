@@ -2,33 +2,33 @@
 
 ## Purpose
 
-The `driver` module is the thin orchestration layer for the MVP. It should compose stage modules into a reproducible local run without embedding stage logic directly in the entrypoint.
+The `driver` module is the thin orchestration layer for the MVP. It should compose pipeline modules into a reproducible local run without embedding business logic directly in the entrypoint.
 
-## Stage 1 scope
+## Current scope
 
-At Stage 1, this module is expected to provide a CLI or entrypoint skeleton, config loading, basic stage selection, and predictable control flow. It should not implement packet parsing, flow construction, or metric computation itself.
+This module currently provides a CLI or entrypoint skeleton, config loading, basic module planning, and predictable control flow. It should not implement packet parsing, flow construction, or metric computation itself.
 
 ## Inputs
 
 - Pipeline config path.
-- Optional stage-selection flags or execution controls.
+- Optional module-selection flags or execution controls.
 
 ## Outputs
 
 - A resolved run plan or execution context.
-- Predictable output locations passed to stage modules.
-- Clear failure messages when an unimplemented stage is requested.
+- Predictable output locations passed to pipeline modules.
+- Clear failure messages when an unimplemented module is requested.
 
 ## Methodology and implementation logic
 
 - The driver must remain thin.
 - Methodology-relevant behaviour must come from config and shared definitions, not hidden driver logic.
-- The driver should preserve the ground-truth-first flow of the pipeline and never let sampled stages run as if they were baseline construction.
+- The driver should preserve the ground-truth-first flow of the pipeline and never let sampled modules run as if they were baseline construction.
 
 ## Assumptions and limitations
 
-- Stage 1 should stop at skeleton validation; end-to-end data processing is not implemented yet.
-- Logging and run metadata may remain minimal until later stages exist.
+- The current implementation stops at skeleton validation plus the earliest executable modules; the full end-to-end path is not implemented yet.
+- Logging and run metadata may remain minimal until later modules exist.
 
 ## Upstream and downstream contracts
 
