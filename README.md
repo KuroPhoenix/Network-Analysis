@@ -108,7 +108,7 @@ These derived metrics are meant to quantify how far a sampled flow record deviat
 
 ## Local Setup
 
-Create a virtual environment and install the local pipeline package plus test dependencies:
+Create a virtual environment and install the runtime plus test dependencies:
 
 ```bash
 python -m venv .venv
@@ -116,7 +116,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-This repository uses a `src/` layout. Package-internal imports therefore use relative imports or `network_analysis...` imports, not `src.network_analysis...`. `pyrightconfig.json` points static analysis tools at `src/`, and `requirements.txt` includes an editable install of the local package for venv-based development.
+This repository uses a `src/` layout. Package-internal imports therefore use relative imports or `network_analysis...` imports, not `src.network_analysis...`. `pyrightconfig.json` points static analysis tools at `src/`, and the repository entrypoints under `scripts/` add `src/` automatically for local execution without requiring an editable install.
 
 ## Dataset Expectations
 
