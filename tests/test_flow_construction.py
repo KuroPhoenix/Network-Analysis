@@ -36,6 +36,8 @@ def test_flow_construction_respects_timeout_boundary_and_zero_duration_flows(tmp
         "dst_port",
         "protocol",
         "flow_sequence",
+        "start_timestamp_us",
+        "end_timestamp_us",
         "start_ts",
         "end_ts",
         "start_packet_index",
@@ -60,6 +62,8 @@ def test_flow_construction_respects_timeout_boundary_and_zero_duration_flows(tmp
     assert first_flow["src_port"] == 12345
     assert first_flow["dst_port"] == 80
     assert first_flow["protocol"] == "tcp"
+    assert first_flow["start_timestamp_us"] == 1_704_067_200_000_000
+    assert first_flow["end_timestamp_us"] == 1_704_067_215_000_000
     assert first_flow["start_packet_index"] == 1
     assert first_flow["end_packet_index"] == 3
     assert first_flow["duration_seconds"] == pytest.approx(15.0)
@@ -76,6 +80,8 @@ def test_flow_construction_respects_timeout_boundary_and_zero_duration_flows(tmp
     assert second_flow["src_ip"] == "10.0.0.3"
     assert second_flow["dst_ip"] == "10.0.0.4"
     assert second_flow["protocol"] == "udp"
+    assert second_flow["start_timestamp_us"] == 1_704_067_205_000_000
+    assert second_flow["end_timestamp_us"] == 1_704_067_205_000_000
     assert second_flow["duration_seconds"] == pytest.approx(0.0)
     assert second_flow["packet_count"] == 1
     assert second_flow["byte_count"] == 200
@@ -88,6 +94,8 @@ def test_flow_construction_respects_timeout_boundary_and_zero_duration_flows(tmp
     assert third_flow["src_ip"] == "10.0.0.1"
     assert third_flow["dst_ip"] == "10.0.0.2"
     assert third_flow["protocol"] == "tcp"
+    assert third_flow["start_timestamp_us"] == 1_704_067_231_000_000
+    assert third_flow["end_timestamp_us"] == 1_704_067_231_000_000
     assert third_flow["duration_seconds"] == pytest.approx(0.0)
     assert third_flow["packet_count"] == 1
     assert third_flow["byte_count"] == 120

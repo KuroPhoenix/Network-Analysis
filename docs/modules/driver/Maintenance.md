@@ -9,6 +9,7 @@
 
 - Re-check this module whenever new modules or optional execution modes are introduced.
 - Keep CLI help text consistent with the current module contracts and config fields.
+- Keep the runnable module sequence aligned with the actual implemented modules and the `enable_plots` gate.
 
 ## Operational caveats
 
@@ -16,5 +17,5 @@
 
 ## Recommendations for future work
 
-- Add run-manifest recording once artefact-producing modules exist.
-- Add a tiny end-to-end fixture run once later modules become executable.
+- Add run-manifest recording once the repo wants a dedicated execution log beyond module artefacts.
+- Revisit plotting orchestration only after the plotting module itself becomes executable.

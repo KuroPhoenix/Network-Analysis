@@ -118,6 +118,15 @@ pip install -r requirements.txt
 
 This repository uses a `src/` layout. Package-internal imports therefore use relative imports or `network_analysis...` imports, not `src.network_analysis...`. `pyrightconfig.json` points static analysis tools at `src/`, and the repository entrypoints under `scripts/` add `src/` automatically for local execution without requiring an editable install.
 
+One tiny local example:
+
+```bash
+python scripts/create_demo_capture.py --overwrite
+python scripts/run_pipeline.py --config configs/demo.pipeline.yaml run
+```
+
+That flow writes the demo capture under `data/raw/demo_trace/`, then runs the local pipeline through metric computation with plotting disabled.
+
 ## Dataset Expectations
 
 1. Dataset should be diverse. That is, datasets should encompass data centre network traces, national link bandwidth network traces, campus network traces, etc (Any domain is accepted).

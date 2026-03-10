@@ -5,6 +5,7 @@
 - Treat timeout changes as methodology changes and document them explicitly.
 - Keep the flow key stable across baseline and sampled reconstructions unless an experiment explicitly studies another key.
 - Re-run boundary tests whenever flow ordering, key grouping, or timestamp handling changes.
+- Keep the canonical microsecond bounds and the human-readable datetime bounds in sync.
 
 ## Maintenance guidelines
 

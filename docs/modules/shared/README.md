@@ -6,7 +6,7 @@ The `shared` module is the common definitions layer for the local-first pipeline
 
 ## Current scope
 
-This module now holds the shared config, schema, type, constant, and artifact-path logic for the executable local MVP slices. It does not parse packet captures or compute flow metrics itself, but later modules now depend on it for resolved dataset artifact paths, the explicit byte-basis contract, and the documented baseline-flow schema.
+This module now holds the shared config, schema, type, constant, and artifact-path logic for the executable local MVP slices. It does not parse packet captures or compute flow metrics itself, but later modules now depend on it for resolved dataset artifact paths, the explicit byte-basis contract, and the documented baseline-flow, sampled-packet, sampled-flow, sampling-manifest, and metric-table schemas.
 
 ## Inputs
 
@@ -20,7 +20,8 @@ This module now holds the shared config, schema, type, constant, and artifact-pa
 - Schema contracts for module inputs and outputs.
 - Resolved dataset artifact paths for staged, processed, and result outputs.
 - Shared provenance-order schema fields used to keep packet ordering reproducible across multiple raw inputs.
-- Shared baseline-flow schema fields used to keep later sampled-flow matching methodologically consistent.
+- Shared baseline-flow and sampled-packet schema fields used to keep later sampled-flow matching methodologically consistent.
+- Shared sampling-manifest and metric-table schemas used to keep per-rate analysis outputs explicit and auditable.
 
 ## Methodology and implementation logic
 

@@ -6,7 +6,7 @@ The `sampling` module will produce `1:X` sampled packet streams or sampled flow 
 
 ## Current scope
 
-This module is still a documented placeholder. No sampling emulation or sampled-trace ingestion logic is implemented yet.
+This module is now implemented for the local CPU reference path. It samples the canonical packet table for each configured rate, writes one sampled-packet table and one sampled-flow table per rate, and records a Parquet sampling manifest that points to those artefacts.
 
 ## Inputs
 
@@ -17,19 +17,30 @@ This module is still a documented placeholder. No sampling emulation or sampled-
 
 ## Outputs
 
-- Sampled packet tables and or sampled flow tables.
-- Sampling metadata recording dataset identifier, sampling rate, method, and seed when applicable.
+- `data/processed/{dataset_id}/sampled_packets/`
+- `data/processed/{dataset_id}/sampled_flows/`
+- `data/processed/{dataset_id}/sampling_runs.parquet`
+- Sampling metadata records:
+  - dataset identifier
+  - sampling rate
+  - sampling method
+  - random seed when applicable
+  - sampled packet and sampled flow paths
+  - sampled packet and sampled flow counts
 
 ## Methodology and implementation logic
 
 - Every `1:X` case must compare directly against the `1:1` baseline.
 - Sampled flows must be reconstructed from sampled packets, not by scaling full baseline flows directly.
 - Externally supplied sampled traces must not be treated as ground truth.
+- Systematic sampling uses the deterministic dataset-wide `packet_index`.
+- The `1:1` path is emitted through the same module so later stages can validate the no-loss reference case with the same artefact contract.
 
 ## Assumptions and limitations
 
-- This module does not yet implement deterministic or stochastic sampling procedures.
+- Sampled-flow tables are diagnostic outputs reconstructed from sampled packets only. They are intentionally allowed to split a baseline flow when sampled packet gaps exceed the inactivity timeout.
 - Matching logic against the baseline belongs to `metrics`, not to this module.
+- Random sampling is supported only when an explicit `sampling.random_seed` is configured.
 
 ## Upstream and downstream contracts
 

@@ -20,6 +20,7 @@ class DatasetArtifactPaths:
     packets: Path
     packet_extraction_manifest: Path
     baseline_flows: Path
+    sampled_packets_dir: Path
     sampled_flows_dir: Path
     sampling_manifest: Path
     metric_summary: Path
@@ -46,6 +47,7 @@ def build_artifact_paths(config: PipelineConfig) -> DatasetArtifactPaths:
         packets=processed_dir / "packets.parquet",
         packet_extraction_manifest=processed_dir / "packet_extraction_manifest.parquet",
         baseline_flows=processed_dir / "baseline_flows.parquet",
+        sampled_packets_dir=processed_dir / "sampled_packets",
         sampled_flows_dir=processed_dir / "sampled_flows",
         sampling_manifest=processed_dir / "sampling_runs.parquet",
         metric_summary=config.output.results_tables_dir / f"{dataset_id}_metric_summary.parquet",

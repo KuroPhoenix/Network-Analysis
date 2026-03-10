@@ -6,7 +6,7 @@ The `driver` module is the thin orchestration layer for the MVP. It should compo
 
 ## Current scope
 
-This module currently provides a CLI or entrypoint skeleton, config loading, basic module planning, and predictable control flow. It should not implement packet parsing, flow construction, or metric computation itself.
+This module now provides the thin runnable entrypoint for the local MVP. It loads config, resolves the module plan, runs the implemented modules end to end, and skips plotting unless `runtime.enable_plots` is enabled.
 
 ## Inputs
 
@@ -18,6 +18,7 @@ This module currently provides a CLI or entrypoint skeleton, config loading, bas
 - A resolved run plan or execution context.
 - Predictable output locations passed to pipeline modules.
 - Clear failure messages when an unimplemented module is requested.
+- End-to-end local execution through metric computation when plotting is disabled.
 
 ## Methodology and implementation logic
 
@@ -27,8 +28,9 @@ This module currently provides a CLI or entrypoint skeleton, config loading, bas
 
 ## Assumptions and limitations
 
-- The current implementation stops at skeleton validation plus the earliest executable modules; the full end-to-end path is not implemented yet.
-- Logging and run metadata may remain minimal until later modules exist.
+- The driver remains intentionally thin; business logic stays inside the pipeline modules.
+- Plotting is still optional and remains disabled by default for the local MVP reference path.
+- Logging and run metadata remain minimal until a dedicated run-manifest layer is added.
 
 ## Upstream and downstream contracts
 

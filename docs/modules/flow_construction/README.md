@@ -22,6 +22,7 @@ This module is now implemented for the local CPU reference path. It consumes the
   - directional flow-key fields
   - deterministic `flow_id`
   - per-key `flow_sequence`
+  - canonical `start_timestamp_us` and `end_timestamp_us` bounds
   - start and end timestamps
   - start and end packet indexes
   - packet and byte counts
@@ -34,6 +35,7 @@ This module is now implemented for the local CPU reference path. It consumes the
 - Packet gaps of `15` seconds or less stay in the same flow unless config overrides the timeout explicitly.
 - Gaps greater than the timeout terminate the current flow and start a new one.
 - Single-packet flows remain valid flows.
+- Canonical timeout comparisons use packet microsecond timestamps, while the human-readable datetime columns remain for inspection.
 - Byte counts use the configured byte basis. In the current MVP that basis is `captured_len`.
 - Zero-duration flows keep `duration_seconds = 0` and leave sending-rate columns undefined rather than forcing a numeric value.
 

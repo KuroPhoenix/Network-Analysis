@@ -36,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run_parser = subparsers.add_parser(
         "run",
-        help="Run the pipeline. Until all modules are implemented, --dry-run is the safe reference path.",
+        help="Run the local pipeline end to end. Plotting is skipped unless enabled in config.",
     )
     run_parser.add_argument(
         "--dry-run",

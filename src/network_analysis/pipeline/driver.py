@@ -44,7 +44,7 @@ def plan_pipeline(config: PipelineConfig) -> tuple[PlannedModule, ...]:
 
     return tuple(
         PlannedModule(contract=contract, resolved_outputs=contract.resolve_output_paths(config))
-        for contract in get_module_catalog()
+        for contract in _module_catalog_for_run(config)
     )
 
 
@@ -59,6 +59,7 @@ def render_pipeline_plan(config: PipelineConfig) -> str:
         f"Inactivity timeout: {config.methodology.inactivity_timeout_seconds}s",
         f"Size basis: {config.methodology.size_basis}",
         f"Byte basis: {config.methodology.byte_basis}",
+        f"Plots enabled: {config.runtime.enable_plots}",
         "",
     ]
     for module in plan_pipeline(config):
@@ -75,7 +76,17 @@ def run_pipeline(config: PipelineConfig, *, dry_run: bool = False) -> tuple[Plan
     if dry_run:
         return planned_modules
 
-    for module in PIPELINE_MODULES:
+    for module in _module_sequence_for_run(config):
         module.run_module(config)
 
     return planned_modules
+
+
+def _module_catalog_for_run(config: PipelineConfig) -> tuple[ModuleContract, ...]:
+    return tuple(module.describe_module() for module in _module_sequence_for_run(config))
+
+
+def _module_sequence_for_run(config: PipelineConfig):
+    if config.runtime.enable_plots:
+        return PIPELINE_MODULES
+    return tuple(module for module in PIPELINE_MODULES if module is not plotting)
