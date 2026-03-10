@@ -1,5 +1,9 @@
 """Dataset registry and validation module implementation."""
 
+from __future__ import annotations
+
+import gzip
+import lzma
 from pathlib import Path
 
 from .base import ModuleContract
@@ -27,6 +31,15 @@ MODULE_CONTRACT = ModuleContract(
     ),
     implemented=True,
 )
+
+PCAP_MAGIC_HEADERS = {
+    b"\xd4\xc3\xb2\xa1",
+    b"\xa1\xb2\xc3\xd4",
+    b"\x4d\x3c\xb2\xa1",
+    b"\xa1\xb2\x3c\x4d",
+}
+PCAPNG_MAGIC_HEADER = b"\x0a\x0d\x0d\x0a"
+CAPTURE_HEADER_BYTES = 4
 
 
 def describe_module() -> ModuleContract:
@@ -92,13 +105,13 @@ def infer_capture_details(path: Path) -> tuple[CaptureFormat | None, Compression
         raise ValueError(f"Unsupported raw file without a capture or archive suffix: {path}")
 
     if suffixes[-1] == ".pcap":
-        return CaptureFormat.PCAP, CompressionType.NONE
+        return _detect_capture_format_for_wrapper(path, CompressionType.NONE), CompressionType.NONE
     if suffixes[-1] == ".pcapng":
-        return CaptureFormat.PCAPNG, CompressionType.NONE
+        return _detect_capture_format_for_wrapper(path, CompressionType.NONE), CompressionType.NONE
     if suffixes[-1] == ".gz":
-        return _capture_from_base_suffixes(path, suffixes[:-1]), CompressionType.GZIP
+        return _detect_capture_format_for_wrapper(path, CompressionType.GZIP), CompressionType.GZIP
     if suffixes[-1] == ".xz":
-        return _capture_from_base_suffixes(path, suffixes[:-1]), CompressionType.XZ
+        return _detect_capture_format_for_wrapper(path, CompressionType.XZ), CompressionType.XZ
     if suffixes[-1] == ".zip":
         return None, CompressionType.ZIP
     if suffixes[-1] == ".rar":
@@ -107,11 +120,47 @@ def infer_capture_details(path: Path) -> tuple[CaptureFormat | None, Compression
     raise ValueError(f"Unsupported raw file type for dataset registry: {path}")
 
 
-def _capture_from_base_suffixes(path: Path, base_suffixes: list[str]) -> CaptureFormat:
-    if not base_suffixes:
-        raise ValueError(f"Compressed file is missing a capture suffix before the wrapper: {path}")
-    if base_suffixes[-1] == ".pcap":
+def detect_capture_format(path: Path, compression_type: CompressionType = CompressionType.NONE) -> CaptureFormat:
+    """Detect the capture format from readable bytes instead of only trusting suffixes."""
+
+    header = _read_capture_header(path, compression_type)
+    try:
+        return detect_capture_format_from_header_bytes(header)
+    except ValueError as exc:
+        raise ValueError(f"Could not detect a supported capture format from file header: {path}") from exc
+
+
+def detect_capture_format_from_header_bytes(header: bytes) -> CaptureFormat:
+    """Detect a supported capture format from already-readable header bytes."""
+
+    capture_format = _capture_format_from_header(header)
+    if capture_format is None:
+        raise ValueError("Could not detect a supported capture format from readable bytes.")
+    return capture_format
+
+
+def _detect_capture_format_for_wrapper(path: Path, compression_type: CompressionType) -> CaptureFormat:
+    return detect_capture_format(path, compression_type)
+
+
+def _read_capture_header(path: Path, compression_type: CompressionType) -> bytes:
+    if compression_type == CompressionType.NONE:
+        with path.open("rb") as handle:
+            return handle.read(CAPTURE_HEADER_BYTES)
+    if compression_type == CompressionType.GZIP:
+        with gzip.open(path, "rb") as handle:
+            return handle.read(CAPTURE_HEADER_BYTES)
+    if compression_type == CompressionType.XZ:
+        with lzma.open(path, "rb") as handle:
+            return handle.read(CAPTURE_HEADER_BYTES)
+    raise ValueError(f"Capture-header detection is not available for wrapper {compression_type}: {path}")
+
+
+def _capture_format_from_header(header: bytes) -> CaptureFormat | None:
+    if len(header) < CAPTURE_HEADER_BYTES:
+        return None
+    if header[:CAPTURE_HEADER_BYTES] in PCAP_MAGIC_HEADERS:
         return CaptureFormat.PCAP
-    if base_suffixes[-1] == ".pcapng":
+    if header[:CAPTURE_HEADER_BYTES] == PCAPNG_MAGIC_HEADER:
         return CaptureFormat.PCAPNG
-    raise ValueError(f"Compressed file does not resolve to a supported capture format: {path}")
+    return None

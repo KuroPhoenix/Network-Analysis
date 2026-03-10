@@ -5,81 +5,89 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 import re
+import shutil
+from time import perf_counter
 
+from .modules.dataset_registry import infer_capture_details
 from .pipeline.driver import run_pipeline
+from .shared.artifacts import build_artifact_paths
 from .shared.batch_config import BatchConfig
 from .shared.config import DatasetConfig, OutputConfig, PipelineConfig
-from .shared.artifacts import build_artifact_paths
-from .modules.dataset_registry import infer_capture_details
+from .shared.runtime_feedback import emit_runtime_event, format_elapsed, progress_bar
+
+BATCH_CAPTURE_GLOB = "*.pcap*"
 
 
 @dataclass(frozen=True)
 class PlannedBatchRun:
-    """A single capture-file analysis derived from a dataset-folder batch config."""
+    """A single dataset-folder analysis derived from a batch config."""
 
     dataset_name: str
-    category: str
     run_id: str
-    source_file: Path
+    source_dir: Path
+    capture_files: tuple[Path, ...]
     pipeline_config: PipelineConfig
 
 
+@dataclass(frozen=True)
+class BatchCleanupSummary:
+    """Cleanup details for one dataset-folder run."""
+
+    dataset_name: str
+    run_id: str
+    removed_paths: tuple[Path, ...]
+
+
 def plan_batch_runs(config: BatchConfig) -> tuple[PlannedBatchRun, ...]:
-    """Resolve capture-file batch runs from the configured datasets root."""
+    """Resolve one dataset-folder run per configured dataset directory."""
 
     dataset_dirs = _discover_dataset_dirs(config)
     planned_runs: list[PlannedBatchRun] = []
-    category_pattern = config.categorization.compiled_pattern()
 
     for dataset_dir in dataset_dirs:
         capture_files = _discover_capture_files(dataset_dir)
-        for source_file in capture_files:
-            category = infer_capture_category(
-                source_file,
-                category_pattern=category_pattern,
-                default_category=config.categorization.default_category,
+        if not capture_files:
+            raise FileNotFoundError(
+                f"No supported capture files were found directly under dataset folder {dataset_dir}"
             )
-            run_id = _derive_run_id(source_file)
-            pipeline_config = PipelineConfig(
-                config_path=config.config_path,
-                dataset=DatasetConfig(
-                    dataset_id=run_id,
-                    input_dir=source_file.parent,
-                    raw_glob=source_file.name,
-                ),
-                output=OutputConfig(
-                    staged_dir=config.output.staged_root / dataset_dir.name / category,
-                    processed_dir=config.output.processed_root / dataset_dir.name / category,
-                    results_tables_dir=config.output.results_root / dataset_dir.name / category / "tables",
-                    results_plots_dir=config.output.results_root / dataset_dir.name / category / "plots",
-                ),
-                methodology=config.methodology,
-                sampling=config.sampling,
-                runtime=config.runtime,
+
+        run_id = _derive_run_id(dataset_dir)
+        pipeline_config = PipelineConfig(
+            config_path=config.config_path,
+            dataset=DatasetConfig(
+                dataset_id=run_id,
+                input_dir=dataset_dir,
+                raw_glob=BATCH_CAPTURE_GLOB,
+            ),
+            output=OutputConfig(
+                staged_dir=config.output.staged_root,
+                processed_dir=config.output.processed_root,
+                results_tables_dir=config.output.results_root / dataset_dir.name / "tables",
+                results_plots_dir=config.output.results_root / dataset_dir.name / "plots",
+            ),
+            methodology=config.methodology,
+            sampling=config.sampling,
+            runtime=config.runtime,
+        )
+        planned_runs.append(
+            PlannedBatchRun(
+                dataset_name=dataset_dir.name,
+                run_id=run_id,
+                source_dir=dataset_dir,
+                capture_files=capture_files,
+                pipeline_config=pipeline_config,
             )
-            planned_runs.append(
-                PlannedBatchRun(
-                    dataset_name=dataset_dir.name,
-                    category=category,
-                    run_id=run_id,
-                    source_file=source_file,
-                    pipeline_config=pipeline_config,
-                )
-            )
+        )
 
     if not planned_runs:
         raise FileNotFoundError(
-            f"No supported capture files were found under dataset subfolders in {config.discovery.datasets_root}"
+            f"No dataset subfolders with supported capture files were found under {config.discovery.datasets_root}"
         )
 
     return tuple(
         sorted(
             planned_runs,
-            key=lambda run: (
-                _natural_sort_key(run.dataset_name),
-                _natural_sort_key(run.category),
-                _natural_sort_key(run.source_file.name),
-            ),
+            key=lambda run: _natural_sort_key(run.dataset_name),
         )
     )
 
@@ -102,9 +110,10 @@ def render_batch_plan(config: BatchConfig) -> str:
         artifact_paths = build_artifact_paths(run.pipeline_config)
         lines.extend(
             (
-                f"[{run.dataset_name}/{run.category}] {run.source_file.name}",
+                f"[{run.dataset_name}] {len(run.capture_files)} capture files",
                 f"  run id -> {run.run_id}",
-                f"  source -> {run.source_file}",
+                f"  source dir -> {run.source_dir}",
+                f"  raw glob -> {run.pipeline_config.dataset.raw_glob}",
                 f"  metric summary -> {artifact_paths.metric_summary}",
                 f"  flow metrics -> {artifact_paths.flow_metrics}",
                 f"  plots dir -> {artifact_paths.plots_dir}",
@@ -115,34 +124,81 @@ def render_batch_plan(config: BatchConfig) -> str:
 
 
 def run_batch(config: BatchConfig, *, dry_run: bool = False) -> tuple[PlannedBatchRun, ...]:
-    """Run the existing single-dataset pipeline once per discovered capture file."""
+    """Run the existing single-dataset pipeline once per discovered dataset folder."""
 
     planned_runs = plan_batch_runs(config)
     if dry_run:
         return planned_runs
 
-    for planned_run in planned_runs:
-        run_pipeline(planned_run.pipeline_config, dry_run=False)
+    batch_start = perf_counter()
+    emit_runtime_event(f"[batch] starting {len(planned_runs)} dataset runs")
+
+    with progress_bar(
+        total=len(planned_runs),
+        desc="batch datasets",
+        unit="dataset",
+        leave=True,
+    ) as bar:
+        for run_index, planned_run in enumerate(planned_runs, start=1):
+            dataset_start = perf_counter()
+            emit_runtime_event(
+                f"[batch] [{run_index}/{len(planned_runs)}] "
+                f"{planned_run.run_id} starting with {len(planned_run.capture_files)} capture files"
+            )
+            try:
+                run_pipeline(planned_run.pipeline_config, dry_run=False)
+            except BaseException:
+                dataset_elapsed = perf_counter() - dataset_start
+                emit_runtime_event(
+                    f"[batch] [{run_index}/{len(planned_runs)}] "
+                    f"{planned_run.run_id} failed after {format_elapsed(dataset_elapsed)}"
+                )
+                raise
+
+            bar.update(1)
+            dataset_elapsed = perf_counter() - dataset_start
+            emit_runtime_event(
+                f"[batch] [{run_index}/{len(planned_runs)}] "
+                f"{planned_run.run_id} completed in {format_elapsed(dataset_elapsed)}"
+            )
+
+    batch_elapsed = perf_counter() - batch_start
+    emit_runtime_event(f"[batch] completed in {format_elapsed(batch_elapsed)}")
 
     return planned_runs
 
 
-def infer_capture_category(
-    source_file: Path,
-    *,
-    category_pattern: re.Pattern[str],
-    default_category: str,
-) -> str:
-    """Infer a traffic category from the capture filename."""
+def clean_batch_outputs(config: BatchConfig) -> tuple[BatchCleanupSummary, ...]:
+    """Remove reproducible generated artifacts for the planned dataset runs."""
 
-    match = category_pattern.match(_strip_known_suffixes(source_file.name))
-    if not match:
-        return default_category
+    cleanup_summaries: list[BatchCleanupSummary] = []
+    for planned_run in plan_batch_runs(config):
+        artifact_paths = build_artifact_paths(planned_run.pipeline_config)
+        removable_paths = (
+            artifact_paths.staged_dir,
+            artifact_paths.processed_dir,
+            artifact_paths.results_tables_dir,
+            artifact_paths.results_plots_dir,
+        )
+        removed_paths: list[Path] = []
+        for path in removable_paths:
+            if path.exists():
+                shutil.rmtree(path)
+                removed_paths.append(path)
 
-    category = match.groupdict().get("category")
-    if category is None or not category.strip():
-        return default_category
-    return category.strip()
+        dataset_results_root = artifact_paths.results_tables_dir.parent
+        if dataset_results_root.exists() and not any(dataset_results_root.iterdir()):
+            dataset_results_root.rmdir()
+
+        cleanup_summaries.append(
+            BatchCleanupSummary(
+                dataset_name=planned_run.dataset_name,
+                run_id=planned_run.run_id,
+                removed_paths=tuple(removed_paths),
+            )
+        )
+
+    return tuple(cleanup_summaries)
 
 
 def _discover_dataset_dirs(config: BatchConfig) -> tuple[Path, ...]:
@@ -172,8 +228,12 @@ def _discover_dataset_dirs(config: BatchConfig) -> tuple[Path, ...]:
 def _discover_capture_files(dataset_dir: Path) -> tuple[Path, ...]:
     capture_files: list[Path] = []
     for path in sorted(
-        (candidate for candidate in dataset_dir.rglob("*") if candidate.is_file()),
-        key=lambda candidate: _natural_sort_key(str(candidate.relative_to(dataset_dir))),
+        (
+            candidate
+            for candidate in dataset_dir.glob(BATCH_CAPTURE_GLOB)
+            if candidate.is_file()
+        ),
+        key=lambda candidate: _natural_sort_key(candidate.name),
     ):
         try:
             infer_capture_details(path)
@@ -183,21 +243,8 @@ def _discover_capture_files(dataset_dir: Path) -> tuple[Path, ...]:
     return tuple(capture_files)
 
 
-def _derive_run_id(source_file: Path) -> str:
-    stem = _strip_known_suffixes(source_file.name)
-    return _slugify(stem)
-
-
-def _strip_known_suffixes(filename: str) -> str:
-    path = Path(filename)
-    suffixes = [suffix.lower() for suffix in path.suffixes]
-    known_suffixes = {".pcap", ".pcapng", ".gz", ".xz", ".zip", ".rar"}
-    stem = path.name
-    while True:
-        suffix = Path(stem).suffix.lower()
-        if not suffix or suffix not in known_suffixes:
-            return stem
-        stem = stem[: -len(suffix)]
+def _derive_run_id(dataset_dir: Path) -> str:
+    return _slugify(dataset_dir.name)
 
 
 def _slugify(value: str) -> str:

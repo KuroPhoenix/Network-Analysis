@@ -6,7 +6,7 @@ import argparse
 from pathlib import Path
 from typing import Sequence
 
-from .batch_runner import render_batch_plan, run_batch
+from .batch_runner import clean_batch_outputs, render_batch_plan, run_batch
 from .shared.batch_config import BatchConfigError, load_batch_config
 from .shared.config import ConfigError
 
@@ -16,7 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(
         prog="network-analysis-batch",
-        description="Batch runner that scans dataset folders and runs the local pipeline per capture file.",
+        description="Batch runner that scans dataset folders and runs the local pipeline once per dataset folder.",
     )
     parser.add_argument(
         "--config",
@@ -32,11 +32,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers.add_parser(
         "plan",
-        help="Print the resolved dataset/category/file batch plan without executing runs.",
+        help="Print the resolved dataset-folder batch plan without executing runs.",
+    )
+    subparsers.add_parser(
+        "clean",
+        help="Remove generated staged, processed, and results artifacts for the planned dataset runs.",
     )
     run_parser = subparsers.add_parser(
         "run",
-        help="Run the local pipeline once per discovered capture file.",
+        help="Run the local pipeline once per discovered dataset folder.",
     )
     run_parser.add_argument(
         "--dry-run",
@@ -59,6 +63,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
         if args.command == "plan":
             print(render_batch_plan(config))
+            return 0
+        if args.command == "clean":
+            cleanup_summaries = clean_batch_outputs(config)
+            for summary in cleanup_summaries:
+                if summary.removed_paths:
+                    print(
+                        f"[clean] {summary.run_id}: removed "
+                        + ", ".join(str(path) for path in summary.removed_paths)
+                    )
+                else:
+                    print(f"[clean] {summary.run_id}: nothing to remove")
             return 0
         if args.command == "run":
             run_batch(config, dry_run=args.dry_run)

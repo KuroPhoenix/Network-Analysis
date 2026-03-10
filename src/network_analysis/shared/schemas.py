@@ -13,7 +13,12 @@ DATASET_REGISTRY_SCHEMA = TableSchema(
         TableColumn("raw_glob", "string", "Discovery glob for raw capture files."),
         TableColumn("raw_file", "string", "Discovered raw capture or archive path."),
         TableColumn("raw_file_size_bytes", "int64", "Raw file size in bytes."),
-        TableColumn("capture_format_hint", "string", "Capture format inferred from the file name.", required=False),
+        TableColumn(
+            "capture_format_hint",
+            "string",
+            "Capture format detected from readable capture bytes when possible; may remain absent for archive wrappers.",
+            required=False,
+        ),
         TableColumn("compression_type", "string", "Compression wrapper inferred from the file name."),
         TableColumn("flow_key", "string", "Configured flow-key field order."),
         TableColumn(
@@ -41,7 +46,7 @@ INGEST_MANIFEST_SCHEMA = TableSchema(
         TableColumn("archive_member_path", "string", "Archive member path when extracted from an archive.", required=False),
         TableColumn("staged_file", "string", "Immutable staged capture path."),
         TableColumn("staging_action", "string", "How the staged file was produced."),
-        TableColumn("capture_format", "string", "Detected capture format."),
+        TableColumn("capture_format", "string", "Capture format detected from the readable staged capture bytes."),
         TableColumn("compression_type", "string", "Detected compression wrapper."),
         TableColumn("source_sha256", "string", "SHA256 checksum of the source raw file."),
         TableColumn("staged_sha256", "string", "SHA256 checksum of the staged capture file."),

@@ -42,7 +42,10 @@ Do not use raw CSV as the primary intermediate format for packet-scale data. Pre
 ### 8. Explicit methodology
 Important assumptions must be visible in configuration and documentation, not buried in code. This includes timeout, flow key, sampling rates, size basis, and dataset identity.
 
-### 9. Module documentation requirement
+### 9. Lightweight runtime visibility
+The local MVP should expose lightweight runtime feedback for long-running local runs. Progress bars and elapsed-time logging are encouraged when they remain optional, deterministic, and separate from the metric logic.
+
+### 10. Module documentation requirement
 
 Module-level documentation and change-tracking requirements are defined in `AGENTS.md`.
 
@@ -102,6 +105,8 @@ The MVP does **not** need to include:
 ### Capture formats
 The MVP must accept packet captures in **PCAP or PCAPNG** format.
 
+When the raw or staged capture bytes are directly readable, capture-format detection should prefer the file header over the filename suffix. This avoids misclassifying valid captures whose extensions do not match their actual wire format.
+
 ### Compression
 The ingest module may also accept compressed archives when practical, such as `.gz`, `.xz`, `.zip`, or `.rar`, provided the decompression path is explicit and the original raw file remains untouched.
 
@@ -136,7 +141,7 @@ Interpretation:
 - packet gaps **greater than 15 seconds** terminate the current flow and start a new one.
 
 ### Flow key rule
-If the repository or task does not specify otherwise, use a **directional 5-tuple** flow key:
+The default flow key is the directional 5-tuple:
 - source IP
 - destination IP
 - source port
@@ -216,11 +221,13 @@ Discover raw input files, validate their basic format, and decompress them into 
 ### Rules
 - raw files must remain immutable;
 - decompression must be explicit and reproducible;
+- capture-format detection should prefer readable capture headers over filename suffixes when the bytes are available locally;
 - failures must be surfaced clearly rather than silently skipped.
 
 ### Validation
 - file discovery works for the configured input path;
 - decompression produces readable staged files;
+- header-based capture-format detection handles mislabeled but valid captures;
 - manifest metadata is generated consistently.
 
 ---
@@ -264,6 +271,7 @@ Optional fields may be added if clearly documented.
 ### Validation
 - schema matches the required packet table contract;
 - a tiny sample capture can be extracted successfully;
+- a mislabeled but valid capture still parses when header detection resolves the true format;
 - output is readable by the flow-construction module.
 
 ---
@@ -404,11 +412,13 @@ Provide one runnable local command that composes the implemented modules into an
 ### Rules
 - the driver must remain thin;
 - module logic belongs in the pipeline modules, not the driver;
-- configuration should drive methodology-relevant behaviour.
+- configuration should drive methodology-relevant behaviour;
+- runtime feedback such as progress bars and elapsed-time logging must not change pipeline semantics.
 
 ### Validation
 - one tiny end-to-end local run completes successfully;
 - outputs are written to predictable locations;
+- per-module and per-dataset elapsed times are visible during runnable local executions;
 - run instructions are documented.
 
 ---
@@ -556,6 +566,7 @@ At minimum, include tests for:
 - timeout-based flow splitting;
 - single-packet flows;
 - deterministic reconstruction on a tiny known example;
+- header-based capture-format detection for mislabeled but valid captures;
 - sampled-vs-baseline matching logic;
 - detection denominator correctness;
 - undefined handling for zero-duration cases;

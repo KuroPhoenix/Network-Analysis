@@ -2,10 +2,6 @@ discovery:
   datasets_root: ../datasets
   dataset_glob: "*"
 
-categorization:
-  category_pattern: '(?i).+_capture_(?P<category>.+?)_(?P<index>\d+)$'
-  default_category: uncategorized
-
 output:
   staged_root: ../data/staged
   processed_root: ../data/processed
@@ -24,9 +20,9 @@ methodology:
 
 sampling:
   rates:
-    - 2
-    - 3
     - 10
+    - 100
+    - 1000
   method: systematic
 
 runtime:

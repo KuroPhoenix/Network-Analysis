@@ -8,6 +8,7 @@ from .flow_construction import _prepare_eligible_packets, _reconstruct_baseline_
 from ..shared.artifacts import build_artifact_paths
 from ..shared.constants import PREFERRED_TABULAR_FORMAT
 from ..shared.config import PipelineConfig
+from ..shared.runtime_feedback import progress_bar
 from ..shared.types import ArtifactContract, ArtifactKind, ModuleName, SamplingMethod
 
 MODULE_CONTRACT = ModuleContract(
@@ -68,10 +69,15 @@ def run_module(config: PipelineConfig) -> tuple[Path, Path, Path]:
         )
 
     packet_frame = pl.read_parquet(artifact_paths.packets)
-    baseline_flow_frame = pl.read_parquet(artifact_paths.baseline_flows)
+    baseline_flow_count = int(
+        pl.scan_parquet(artifact_paths.baseline_flows)
+        .select(pl.len().alias("row_count"))
+        .collect()
+        .item(0, "row_count")
+    )
     if packet_frame.is_empty():
         raise ValueError("Sampling found no packets in the canonical packet table.")
-    if baseline_flow_frame.is_empty():
+    if baseline_flow_count == 0:
         raise ValueError("Sampling found no baseline flows to compare against.")
 
     artifact_paths.sampled_packets_dir.mkdir(parents=True, exist_ok=True)
@@ -79,30 +85,37 @@ def run_module(config: PipelineConfig) -> tuple[Path, Path, Path]:
     artifact_paths.processed_dir.mkdir(parents=True, exist_ok=True)
 
     manifest_rows: list[dict[str, object]] = []
-    for rate in config.sampling.normalized_rates():
-        sampled_packet_frame = _sample_packets(packet_frame, config, rate)
-        sampled_packets_path = _resolve_sampled_packets_path(config, artifact_paths.sampled_packets_dir, rate)
-        sampled_packet_frame.write_parquet(sampled_packets_path)
+    normalized_rates = config.sampling.normalized_rates()
+    with progress_bar(
+        total=len(normalized_rates),
+        desc=f"{config.dataset.dataset_id}: sampling",
+        unit="rate",
+    ) as bar:
+        for rate in normalized_rates:
+            sampled_packet_frame = _sample_packets(packet_frame, config, rate)
+            sampled_packets_path = _resolve_sampled_packets_path(config, artifact_paths.sampled_packets_dir, rate)
+            sampled_packet_frame.write_parquet(sampled_packets_path)
 
-        sampled_flow_frame = _reconstruct_sampled_flows(sampled_packet_frame, config, rate)
-        sampled_flows_path = _resolve_sampled_flows_path(config, artifact_paths.sampled_flows_dir, rate)
-        sampled_flow_frame.write_parquet(sampled_flows_path)
+            sampled_flow_frame = _reconstruct_sampled_flows(sampled_packet_frame, config, rate)
+            sampled_flows_path = _resolve_sampled_flows_path(config, artifact_paths.sampled_flows_dir, rate)
+            sampled_flow_frame.write_parquet(sampled_flows_path)
 
-        manifest_rows.append(
-            {
-                "dataset_id": config.dataset.dataset_id,
-                "sampling_rate": rate,
-                "sampling_method": config.sampling.method.value,
-                "random_seed": config.sampling.random_seed,
-                "sampled_packets_path": str(sampled_packets_path),
-                "sampled_flows_path": str(sampled_flows_path),
-                "sampled_packet_count": sampled_packet_frame.height,
-                "flow_eligible_sampled_packet_count": sampled_packet_frame.filter(pl.col("flow_eligible")).height,
-                "sampled_flow_count": sampled_flow_frame.height,
-                "size_basis": config.methodology.size_basis.value,
-                "byte_basis": config.methodology.byte_basis.value,
-            }
-        )
+            manifest_rows.append(
+                {
+                    "dataset_id": config.dataset.dataset_id,
+                    "sampling_rate": rate,
+                    "sampling_method": config.sampling.method.value,
+                    "random_seed": config.sampling.random_seed,
+                    "sampled_packets_path": str(sampled_packets_path),
+                    "sampled_flows_path": str(sampled_flows_path),
+                    "sampled_packet_count": sampled_packet_frame.height,
+                    "flow_eligible_sampled_packet_count": sampled_packet_frame.filter(pl.col("flow_eligible")).height,
+                    "sampled_flow_count": sampled_flow_frame.height,
+                    "size_basis": config.methodology.size_basis.value,
+                    "byte_basis": config.methodology.byte_basis.value,
+                }
+            )
+            bar.update(1)
 
     pl.DataFrame(manifest_rows).sort("sampling_rate").write_parquet(artifact_paths.sampling_manifest)
     return artifact_paths.sampled_packets_dir, artifact_paths.sampled_flows_dir, artifact_paths.sampling_manifest

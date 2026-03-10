@@ -136,22 +136,19 @@ python scripts/run_dataset_batches.py --config configs/datasets.batch.yaml plan
 python scripts/run_dataset_batches.py --config configs/datasets.batch.yaml run
 ```
 
-The batch runner treats each immediate subfolder under the configured `datasets_root` as one dataset collection, discovers capture files recursively inside it, and runs the existing single-dataset pipeline once per capture file. This avoids concatenating unrelated traces into one synthetic baseline run.
+The batch runner treats each immediate subfolder under the configured `datasets_root` as one dataset run. For example, if you have `datasets/bras/` and `datasets/onu/`, the direct child capture files named `*.pcap*` inside `bras/` are processed together as dataset `bras`, and the corresponding direct child capture files inside `onu/` are processed together as dataset `onu`.
 
-By default, the runner infers a traffic category from filenames such as `BRAS_capture_game_1.pcap` and stores outputs like this:
+Results are stored like this:
 
 ```text
 results/
-  Anonymized_bras_dataset/
-    game/
-      tables/
-      plots/
-    video/
-      tables/
-      plots/
+  bras/
+    tables/
+    plots/
+  onu/
+    tables/
+    plots/
 ```
-
-If a filename does not match the default category pattern, it is stored under `uncategorized/`.
 
 ## Dataset Expectations
 

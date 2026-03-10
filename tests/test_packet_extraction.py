@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 import socket
+import zipfile
 
 import dpkt
 import polars as pl
 
 from network_analysis.modules import dataset_registry, ingest, packet_extraction
 from network_analysis.shared.config import load_pipeline_config
+from network_analysis.shared.types import CaptureFormat, CompressionType
 
 
 def test_packet_extraction_slice_preserves_raw_input_and_packet_order(tmp_path: Path) -> None:
@@ -121,6 +123,90 @@ def test_packet_extraction_uses_registry_order_and_collision_safe_staging(tmp_pa
     assert packet_frame["timestamp_us"].to_list()[0] > packet_frame["timestamp_us"].to_list()[1]
 
 
+def test_mislabeled_pcapng_suffix_is_detected_from_header_and_parses_cleanly(tmp_path: Path) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    capture_path = raw_dir / "onu_fixture.pcapng"
+    _write_fixture_pcap(capture_path)
+
+    config_path = _write_config(tmp_path, raw_dir, raw_glob="*.pcapng")
+    config = load_pipeline_config(config_path)
+
+    registry_path = dataset_registry.run_module(config)
+    ingest_manifest_path = ingest.run_module(config)
+    packet_table_path, _ = packet_extraction.run_module(config)
+
+    registry_frame = pl.read_parquet(registry_path)
+    assert registry_frame.item(0, "capture_format_hint") == "pcap"
+
+    ingest_manifest = pl.read_parquet(ingest_manifest_path)
+    assert ingest_manifest.item(0, "capture_format") == "pcap"
+
+    packet_frame = pl.read_parquet(packet_table_path)
+    assert packet_frame.height == 3
+    assert packet_frame["protocol"].to_list() == ["tcp", "arp", "udp"]
+
+
+def test_infer_capture_details_prefers_header_over_suffix_for_true_pcapng(tmp_path: Path) -> None:
+    capture_path = tmp_path / "fixture_trace.pcap"
+    _write_fixture_pcapng(capture_path)
+
+    capture_format, compression_type = dataset_registry.infer_capture_details(capture_path)
+
+    assert capture_format == CaptureFormat.PCAPNG
+    assert compression_type == CompressionType.NONE
+
+
+def test_zip_member_header_detection_accepts_mislabeled_capture_member(tmp_path: Path) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    archive_path = raw_dir / "captures.zip"
+    capture_path = tmp_path / "inner_capture.pcap"
+    _write_fixture_pcap(capture_path)
+    _write_zip_archive(archive_path, member_name="nested/member.bin", member_bytes=capture_path.read_bytes())
+
+    config_path = _write_config(tmp_path, raw_dir, raw_glob="*.zip")
+    config = load_pipeline_config(config_path)
+
+    dataset_registry.run_module(config)
+    ingest_manifest_path = ingest.run_module(config)
+    packet_table_path, _ = packet_extraction.run_module(config)
+
+    ingest_manifest = pl.read_parquet(ingest_manifest_path)
+    assert ingest_manifest.height == 1
+    assert ingest_manifest.item(0, "archive_member_path") == "nested/member.bin"
+    assert ingest_manifest.item(0, "capture_format") == "pcap"
+
+    packet_frame = pl.read_parquet(packet_table_path)
+    assert packet_frame.height == 3
+    assert packet_frame["protocol"].to_list() == ["tcp", "arp", "udp"]
+
+
+def test_packet_extraction_preserves_numeric_tcp_flags_as_strings_at_scale(tmp_path: Path) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    capture_path = raw_dir / "many_tcp_packets.pcap"
+    _write_fixture_pcap(
+        capture_path,
+        packets=[
+            _build_tcp_frame("10.0.0.1", "10.0.0.2", 10000 + index, 80, b"x")
+            for index in range(150)
+        ],
+    )
+
+    config_path = _write_config(tmp_path, raw_dir)
+    config = load_pipeline_config(config_path)
+
+    dataset_registry.run_module(config)
+    ingest.run_module(config)
+    packet_table_path, _ = packet_extraction.run_module(config)
+
+    packet_frame = pl.read_parquet(packet_table_path)
+    assert packet_frame.height == 150
+    assert packet_frame["tcp_flags"].dtype == pl.String
+    assert packet_frame["tcp_flags"].head(3).to_list() == ["2", "2", "2"]
+
+
 def _write_fixture_pcap(
     path: Path,
     *,
@@ -138,6 +224,29 @@ def _write_fixture_pcap(
         for offset, packet_bytes in enumerate(packets):
             writer.writepkt(packet_bytes, ts=base_time + offset)
         writer.close()
+
+
+def _write_fixture_pcapng(
+    path: Path,
+    *,
+    base_time: float = 1_700_000_000.0,
+    packets: list[bytes] | None = None,
+) -> None:
+    packets = packets or [
+        _build_tcp_frame("10.0.0.1", "10.0.0.2", 1111, 80, b"hello"),
+        _build_udp_frame("10.0.0.3", "10.0.0.4", 5353, 53, b"world"),
+    ]
+
+    with path.open("wb") as handle:
+        writer = dpkt.pcapng.Writer(handle)
+        for offset, packet_bytes in enumerate(packets):
+            writer.writepkt(packet_bytes, ts=base_time + offset)
+        writer.close()
+
+
+def _write_zip_archive(path: Path, *, member_name: str, member_bytes: bytes) -> None:
+    with zipfile.ZipFile(path, "w") as archive:
+        archive.writestr(member_name, member_bytes)
 
 
 def _build_tcp_frame(src_ip: str, dst_ip: str, src_port: int, dst_port: int, payload: bytes) -> bytes:

@@ -42,8 +42,9 @@ The ingest manifest records one row per staged capture member with these fields:
 - Supported wrappers are handled explicitly:
   - `.gz` is decompressed to one staged capture file.
   - `.xz` is decompressed to one staged capture file.
-  - `.zip` is scanned for `.pcap` and `.pcapng` members and each matching member is extracted separately.
+  - `.zip` is scanned for members whose readable header bytes identify them as `pcap` or `pcapng`, and each matching member is extracted separately.
 - Staged filenames are deterministic. They are prefixed with `source_discovery_index`, and ZIP members also include `source_member_index`.
+- Capture format for staged files is detected from the readable staged bytes instead of trusting the staged filename suffix. This keeps mislabeled but valid captures usable after staging.
 - The module computes SHA256 hashes for both the source artefact and the staged file so later runs can confirm provenance.
 - Failures are loud. Unsupported archive types and archives with no usable capture members raise `ValueError`.
 
@@ -59,6 +60,6 @@ The ingest manifest records one row per staged capture member with these fields:
 ## Assumptions and limitations
 
 - `.rar` archives are intentionally unsupported in the local MVP because the repo does not add extra archive tooling by default.
-- Capture format for staged files is inferred from the staged filename suffix after decompression or extraction. Unexpected suffixes fail the module.
+- `.zip` member selection uses readable header bytes, but it still only scans the immediate archive members that are present in the ZIP file.
 - The module does not validate packet readability beyond producing staged files and format metadata. Actual packet parsing happens in `packet_extraction`.
 - Repeated runs overwrite the same staged paths deterministically; the raw source artefacts remain unchanged.

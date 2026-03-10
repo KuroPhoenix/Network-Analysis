@@ -23,6 +23,7 @@ The CLI is responsible for loading the config file path. The driver itself opera
 - A tuple of `PlannedModule` entries from `plan_pipeline`
 - A text rendering of the module plan from `render_pipeline_plan`
 - A tuple of `PlannedModule` entries returned by `run_pipeline` after executing the selected module sequence
+- stderr runtime feedback for local runs, including per-module elapsed times and a pipeline-total elapsed time
 
 The driver does not produce pipeline artefacts directly. The underlying modules write those artefacts to disk.
 
@@ -38,6 +39,7 @@ The driver does not produce pipeline artefacts directly. The underlying modules 
   - optional `plotting`
 - `runtime.enable_plots` is the only module-selection gate in the current MVP. When it is `false`, the plotting module is omitted from both the plan and the run sequence.
 - `run_pipeline(..., dry_run=True)` returns the resolved plan without executing any module.
+- Runnable local executions emit lightweight per-module elapsed-time logs and a module-count progress bar. This is operational feedback only and must not alter module outputs or metric semantics.
 - The driver only composes module calls. Timeout, flow key, sampling semantics, size basis, and matching logic all remain inside shared config and module implementations.
 
 ## Upstream and downstream contracts
@@ -54,4 +56,5 @@ The driver does not produce pipeline artefacts directly. The underlying modules 
 - The current driver has no partial-stage selection beyond the plotting gate.
 - The driver returns plan metadata, not a structured run manifest of produced artefacts.
 - Logging and execution metadata remain intentionally lightweight in the MVP.
+- The driver does not currently persist a structured timing manifest; runtime visibility is terminal-oriented.
 - Any future branching logic that affects methodology should stay out of this module unless the repo explicitly changes the orchestration contract.

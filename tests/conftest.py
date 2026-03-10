@@ -3,6 +3,7 @@
 from pathlib import Path
 import sys
 
+import dpkt
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -46,14 +47,14 @@ def sample_batch_config_path(tmp_path: Path) -> Path:
     """Create a minimal valid batch config and dataset tree."""
 
     datasets_root = tmp_path / "datasets"
-    bras_dir = datasets_root / "Anonymized_bras_dataset" / "Anonymized_bras_dataset"
-    onu_dir = datasets_root / "Anonymized_onu_dataset" / "Anonymized_onu_dataset"
+    bras_dir = datasets_root / "Anonymized_bras_dataset"
+    onu_dir = datasets_root / "Anonymized_onu_dataset"
     bras_dir.mkdir(parents=True)
     onu_dir.mkdir(parents=True)
 
-    (bras_dir / "BRAS_capture_game_1.pcap").write_bytes(b"")
-    (bras_dir / "BRAS_capture_video_2.pcap").write_bytes(b"")
-    (onu_dir / "misc_trace.pcapng").write_bytes(b"")
+    _write_empty_pcap_capture(bras_dir / "BRAS_capture_game_1.pcap")
+    _write_empty_pcap_capture(bras_dir / "BRAS_capture_video_2.pcap")
+    _write_empty_pcap_capture(onu_dir / "misc_trace.pcapng")
     (onu_dir / "notes.txt").write_text("ignore me\n", encoding="utf-8")
 
     config_path = tmp_path / "batch.yaml"
@@ -80,3 +81,9 @@ runtime:
         encoding="utf-8",
     )
     return config_path
+
+
+def _write_empty_pcap_capture(path: Path) -> None:
+    with path.open("wb") as handle:
+        writer = dpkt.pcap.Writer(handle)
+        writer.close()

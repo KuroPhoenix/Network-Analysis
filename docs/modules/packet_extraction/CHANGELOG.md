@@ -2,6 +2,20 @@
 
 ## 2026-03-10
 
+### Runtime and Integration
+
+1. Purpose of modification: make packet extraction observable during long runs and align it with header-based capture-format detection upstream.
+2. What changed: added lightweight per-file progress reporting and documented that `capture_format` in the ingest manifest is now resolved from staged capture bytes rather than only from filename suffixes.
+3. Impact on other pipeline modules: no metric or packet semantics changed, but extraction now handles mislabeled captures correctly when upstream staging resolves the true format.
+4. Required maintenance or follow-up updates: keep progress reporting lightweight and keep the ingest-manifest format contract synchronized with any future parser changes.
+
+### Performance
+
+1. Purpose of modification: reduce packet-extraction overhead on large traces without changing packet semantics.
+2. What changed: switched the in-memory packet build path to column-oriented accumulation, derived UTC datetimes from `timestamp_us` in Polars, removed the redundant post-build resort, and reduced repeated manifest-count scans when writing extraction metadata.
+3. Impact on other pipeline modules: downstream modules still receive the same canonical packet schema and deterministic packet ordering, but large local runs spend less time and memory in extraction.
+4. Required maintenance or follow-up updates: if extraction becomes chunked in the future, preserve the same global packet ordering before assigning `packet_index`.
+
 ### Implementation
 
 1. Purpose of modification: turn packet extraction into the first Parquet-producing analysis step.

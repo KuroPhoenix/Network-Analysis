@@ -2,6 +2,13 @@
 
 ## 2026-03-10
 
+### Runtime Visibility
+
+1. Purpose of modification: make long local runs inspectable without moving any business logic into orchestration.
+2. What changed: added lightweight module-count progress reporting plus per-module and pipeline-total elapsed-time logging on stderr.
+3. Impact on other pipeline modules: module outputs and methodology are unchanged, but operators can now see which module is active and how long each one took.
+4. Required maintenance or follow-up updates: if structured timing artifacts are added later, keep them optional and separate from methodology logic.
+
 ### Implementation
 
 1. Purpose of modification: turn the thin driver into a runnable local MVP entrypoint.

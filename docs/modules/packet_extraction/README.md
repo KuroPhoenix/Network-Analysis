@@ -59,8 +59,9 @@ The extraction manifest currently records:
 ## Methodology and implementation logic
 
 - Files are processed in ingest-manifest order: first by `source_discovery_index`, then by `source_member_index`.
+- File-level progress is reported during long local runs, including per-file start and completion timing, but packet extraction semantics remain unchanged.
 - Packets inside each file are read in capture order and given a deterministic `source_packet_index`.
-- The module assigns a global `packet_index` after concatenating all packet rows. Systematic sampling later depends on this index.
+- The module appends packet columns in ingest order and assigns a global `packet_index` from that preserved order. Systematic sampling later depends on this index.
 - `timestamp_us` is the canonical microsecond timestamp used for ordering and timeout comparisons. The `timestamp` column is a UTC datetime derived from it.
 - The CPU reference parser is `dpkt`.
 - The current eligibility rule matches the repo default directional 5-tuple:
@@ -74,7 +75,7 @@ The extraction manifest currently records:
 
 - Upstream contract:
   - `ingest` must already have written a non-empty manifest.
-  - `staged_file` paths must exist and `capture_format` must be one of `pcap` or `pcapng`.
+  - `staged_file` paths must exist and `capture_format` must be one of `pcap` or `pcapng`, with the format coming from staged-byte detection rather than only from suffixes.
 - Downstream contract:
   - `flow_construction` requires `packet_index`, `timestamp_us`, `timestamp`, `captured_len`, `wire_len`, `flow_eligible`, and the configured flow-key fields.
   - `sampling` expects the full packet table, including ineligible packets, so packet-selection semantics apply to the same packet stream as the baseline run.
@@ -85,3 +86,4 @@ The extraction manifest currently records:
 - Only TCP and UDP packets over IPv4 or IPv6 are eligible for the default flow reconstruction path.
 - `tcp_flags` are captured for TCP packets only and stored as a stringified integer flag value.
 - The module does not currently emit richer parser diagnostics such as decode-error counters or link-layer metadata beyond what is needed for the MVP.
+- The module trusts the staged manifest's resolved capture format. If staged-format detection is wrong upstream, parsing will fail loudly here.

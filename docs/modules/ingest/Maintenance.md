@@ -12,12 +12,14 @@
 - Keep checksum collection for both source and staged artefacts so provenance remains auditable.
 - If new compression types are introduced, update both the implementation and this documentation together.
 - Keep extraction logic explicit in this module rather than moving archive handling into the driver or packet parser.
+- Keep staged capture-format detection header-based whenever the staged bytes are directly readable.
 
 ## Operational caveats
 
 - ZIP archives may emit multiple staged files; downstream packet ordering depends on `source_discovery_index` and `source_member_index`.
 - `.rar` currently fails by design. Do not silently add shell-dependent fallback behavior without documenting the new dependency.
 - Staging does not verify packet-level integrity. A successfully staged file can still fail later in `packet_extraction`.
+- Progress bars are runtime feedback only. They must remain optional and must not become a control surface for methodology or retry logic.
 
 ## Recommendations for future work
 

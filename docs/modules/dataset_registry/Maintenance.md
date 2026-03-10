@@ -11,12 +11,14 @@
 - Keep discovery deterministic; if glob handling changes, preserve a stable sort order.
 - Update this module when new dataset-level metadata becomes necessary for downstream reproducibility.
 - Review the contract against ingest whenever supported archive or capture formats expand.
+- Keep header-based format detection aligned with the actual parser capabilities in `ingest` and `packet_extraction`.
 
 ## Operational caveats
 
 - Do not let convenience shortcuts turn sampled datasets into baseline inputs.
 - Avoid embedding dataset acceptance policy in multiple modules.
-- Do not silently infer missing suffix information for unsupported files.
+- Do not silently fall back to suffix-only guessing when readable capture bytes are available.
+- Archive wrappers that are not directly inspectable at this stage still need explicit downstream handling.
 
 ## Recommendations for future work
 

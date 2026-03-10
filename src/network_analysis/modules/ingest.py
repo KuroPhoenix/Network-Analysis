@@ -8,9 +8,11 @@ import shutil
 import zipfile
 
 from .base import ModuleContract
+from .dataset_registry import detect_capture_format, detect_capture_format_from_header_bytes
 from ..shared.artifacts import build_artifact_paths
 from ..shared.constants import PREFERRED_TABULAR_FORMAT
 from ..shared.config import PipelineConfig
+from ..shared.runtime_feedback import progress_bar
 from ..shared.types import (
     ArtifactContract,
     ArtifactKind,
@@ -72,8 +74,14 @@ def run_module(config: PipelineConfig) -> Path:
     artifact_paths.processed_dir.mkdir(parents=True, exist_ok=True)
 
     manifest_rows: list[dict[str, object]] = []
-    for row in registry_frame.iter_rows(named=True):
-        manifest_rows.extend(_stage_registry_row(row, artifact_paths.staged_dir))
+    with progress_bar(
+        total=registry_frame.height,
+        desc=f"{config.dataset.dataset_id}: ingest",
+        unit="file",
+    ) as bar:
+        for row in registry_frame.iter_rows(named=True):
+            manifest_rows.extend(_stage_registry_row(row, artifact_paths.staged_dir))
+            bar.update(1)
 
     if not manifest_rows:
         raise ValueError("Ingest did not stage any capture files.")
@@ -156,15 +164,21 @@ def _stage_registry_row(row: dict[str, object], staged_dir: Path) -> list[dict[s
         manifest_rows: list[dict[str, object]] = []
         with zipfile.ZipFile(source_file) as archive:
             capture_members = [
-                member
+                (member, _infer_zip_member_capture_format(archive, member))
                 for member in archive.infolist()
                 if not member.is_dir()
-                and Path(member.filename).suffix.lower() in {".pcap", ".pcapng"}
+            ]
+            capture_members = [
+                (member, capture_format)
+                for member, capture_format in capture_members
+                if capture_format is not None
             ]
             if not capture_members:
-                raise ValueError(f"No .pcap or .pcapng member found in ZIP archive: {source_file}")
+                raise ValueError(
+                    f"No readable PCAP or PCAPNG member found in ZIP archive: {source_file}"
+                )
 
-            for member_index, member in enumerate(capture_members, start=1):
+            for member_index, (member, capture_format) in enumerate(capture_members, start=1):
                 staged_file = staged_dir / _build_staged_filename(
                     discovery_index=discovery_index,
                     basename=_sanitize_member_filename(member.filename),
@@ -172,7 +186,6 @@ def _stage_registry_row(row: dict[str, object], staged_dir: Path) -> list[dict[s
                 )
                 with archive.open(member, "r") as source_handle, staged_file.open("wb") as target_handle:
                     shutil.copyfileobj(source_handle, target_handle)
-                capture_format = _infer_staged_capture_format(staged_file)
                 manifest_rows.append(
                     _build_manifest_row(
                         dataset_id=str(row["dataset_id"]),
@@ -244,12 +257,17 @@ def _sanitize_member_filename(value: str) -> str:
 
 
 def _infer_staged_capture_format(path: Path) -> CaptureFormat:
-    suffix = path.suffix.lower()
-    if suffix == ".pcap":
-        return CaptureFormat.PCAP
-    if suffix == ".pcapng":
-        return CaptureFormat.PCAPNG
-    raise ValueError(f"Unsupported staged capture format: {path}")
+    return detect_capture_format(path)
+
+
+def _infer_zip_member_capture_format(archive: zipfile.ZipFile, member: zipfile.ZipInfo) -> CaptureFormat | None:
+    with archive.open(member, "r") as member_handle:
+        header = member_handle.read(4)
+
+    try:
+        return detect_capture_format_from_header_bytes(header)
+    except ValueError:
+        return None
 
 
 def _sha256_file(path: Path) -> str:

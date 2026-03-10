@@ -39,6 +39,21 @@ def test_cli_run_executes_end_to_end_pipeline_without_plots(tmp_path: Path) -> N
     assert summary_frame["flow_detection_rate"].to_list() == [1.0, 0.5, 1.0]
 
 
+def test_cli_run_emits_module_elapsed_time_logs(tmp_path: Path, capsys) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    capture_path = raw_dir / "fixture_trace.pcap"
+    _write_fixture_pcap(capture_path)
+
+    config_path = _write_config(tmp_path, raw_dir)
+    exit_code = main(["--config", str(config_path), "run"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "[dataset fixture_trace] [1/6] dataset_registry completed in" in captured.err
+    assert "[dataset fixture_trace] pipeline completed in" in captured.err
+
+
 def _write_fixture_pcap(path: Path) -> None:
     base_time = 1_700_000_000.0
     packets = [

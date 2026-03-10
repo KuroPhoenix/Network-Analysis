@@ -1,6 +1,7 @@
 """Thin driver that composes the pipeline modules."""
 
 from dataclasses import dataclass
+from time import perf_counter
 
 from ..modules import (
     dataset_registry,
@@ -13,6 +14,7 @@ from ..modules import (
 )
 from ..modules.base import ModuleContract
 from ..shared.config import PipelineConfig
+from ..shared.runtime_feedback import emit_runtime_event, format_elapsed, progress_bar
 
 PIPELINE_MODULES = (
     dataset_registry,
@@ -76,8 +78,45 @@ def run_pipeline(config: PipelineConfig, *, dry_run: bool = False) -> tuple[Plan
     if dry_run:
         return planned_modules
 
-    for module in _module_sequence_for_run(config):
-        module.run_module(config)
+    module_sequence = _module_sequence_for_run(config)
+    dataset_id = config.dataset.dataset_id
+    pipeline_start = perf_counter()
+    emit_runtime_event(
+        f"[dataset {dataset_id}] starting pipeline with {len(module_sequence)} modules"
+    )
+
+    with progress_bar(
+        total=len(module_sequence),
+        desc=f"{dataset_id}: modules",
+        unit="module",
+    ) as bar:
+        for module_index, module in enumerate(module_sequence, start=1):
+            contract = module.describe_module()
+            module_start = perf_counter()
+            emit_runtime_event(
+                f"[dataset {dataset_id}] [{module_index}/{len(module_sequence)}] {contract.name} starting"
+            )
+            try:
+                module.run_module(config)
+            except BaseException:
+                module_elapsed = perf_counter() - module_start
+                emit_runtime_event(
+                    f"[dataset {dataset_id}] [{module_index}/{len(module_sequence)}] "
+                    f"{contract.name} failed after {format_elapsed(module_elapsed)}"
+                )
+                raise
+
+            bar.update(1)
+            module_elapsed = perf_counter() - module_start
+            emit_runtime_event(
+                f"[dataset {dataset_id}] [{module_index}/{len(module_sequence)}] "
+                f"{contract.name} completed in {format_elapsed(module_elapsed)}"
+            )
+
+    pipeline_elapsed = perf_counter() - pipeline_start
+    emit_runtime_event(
+        f"[dataset {dataset_id}] pipeline completed in {format_elapsed(pipeline_elapsed)}"
+    )
 
     return planned_modules
 

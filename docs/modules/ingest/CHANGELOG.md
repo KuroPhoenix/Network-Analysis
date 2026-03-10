@@ -2,6 +2,13 @@
 
 ## 2026-03-10
 
+### Runtime and Format Detection
+
+1. Purpose of modification: keep staging robust for mislabeled captures and improve observability of long-running local runs.
+2. What changed: switched staged capture-format inference from suffix-based checks to header-based detection, extended ZIP-member selection to use readable member headers instead of suffixes alone, and added lightweight file-level progress bars during staging.
+3. Impact on other pipeline modules: `packet_extraction` now receives correct staged capture formats for mislabeled direct captures and mislabeled ZIP members, and local operators can see staging progress without changing pipeline semantics.
+4. Required maintenance or follow-up updates: if additional wrappers or archive-member detection rules are added, keep the staged-format and progress behavior documented together.
+
 ### Implementation
 
 1. Purpose of modification: turn ingest into an executable staging step for the local MVP.

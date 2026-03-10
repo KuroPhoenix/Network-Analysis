@@ -12,6 +12,7 @@ dependencies = [
   "dpkt>=1.9.8",
   "polars>=1.30.0",
   "PyYAML>=6.0",
+  "tqdm>=4.66",
 ]
 
 [project.scripts]
