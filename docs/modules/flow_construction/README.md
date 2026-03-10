@@ -2,50 +2,79 @@
 
 ## Purpose
 
-The `flow_construction` module reconstructs directional `1:1` baseline flows from canonical packet tables using the shared flow key and inactivity timeout rules.
-
-## Current scope
-
-This module is now implemented for the local CPU reference path. It consumes the canonical packet table, filters to flow-eligible packets, groups packets by the configured directional flow key, and splits each key into separate baseline flows when the inactivity gap is greater than the configured timeout.
+The `flow_construction` module builds the `1:1` ground-truth baseline flow table from the canonical packet table. It applies the configured directional flow key and inactivity timeout to flow-eligible packets only, then writes one deterministic Parquet flow table for downstream sampling comparisons.
 
 ## Inputs
 
-- Canonical packet tables from `packet_extraction`.
-- Explicit flow key definition, defaulting to the directional 5-tuple.
-- Inactivity timeout, defaulting to `15` seconds unless config overrides it.
-- Explicit size basis selection.
+- `data/processed/{dataset_id}/packets.parquet` from `packet_extraction`
+- Shared methodology settings:
+  - `flow_key_fields`
+  - `inactivity_timeout_seconds`
+  - `size_basis`
+  - `byte_basis`
+
+The module requires these packet-table fields:
+
+- `dataset_id`
+- `packet_index`
+- `timestamp_us`
+- `timestamp`
+- `captured_len`
+- `wire_len`
+- configured flow-key columns
+- `flow_eligible`
 
 ## Outputs
 
 - `data/processed/{dataset_id}/baseline_flows.parquet`
-- Baseline flow rows include:
-  - directional flow-key fields
-  - deterministic `flow_id`
-  - per-key `flow_sequence`
-  - canonical `start_timestamp_us` and `end_timestamp_us` bounds
-  - start and end timestamps
-  - start and end packet indexes
-  - packet and byte counts
-  - packet and byte sending rates
-  - explicit `size_basis` and `byte_basis` metadata
+
+The baseline flow table contains:
+
+- `dataset_id`
+- `flow_id`
+- configured flow-key columns
+- `flow_sequence`
+- `start_timestamp_us`
+- `end_timestamp_us`
+- `start_ts`
+- `end_ts`
+- `start_packet_index`
+- `end_packet_index`
+- `duration_seconds`
+- `packet_count`
+- `byte_count`
+- `sending_rate_packets_per_second`
+- `sending_rate_bytes_per_second`
+- `size_basis`
+- `byte_basis`
 
 ## Methodology and implementation logic
 
-- `1:1` is the only ground-truth baseline.
-- Packet gaps of `15` seconds or less stay in the same flow unless config overrides the timeout explicitly.
-- Gaps greater than the timeout terminate the current flow and start a new one.
-- Single-packet flows remain valid flows.
-- Canonical timeout comparisons use packet microsecond timestamps, while the human-readable datetime columns remain for inspection.
-- Byte counts use the configured byte basis. In the current MVP that basis is `captured_len`.
-- Zero-duration flows keep `duration_seconds = 0` and leave sending-rate columns undefined rather than forcing a numeric value.
-
-## Assumptions and limitations
-
-- The current implementation is CPU-first and iterates flow state in Python for determinism and clarity.
-- Flow IDs are deterministic for a given packet table, but sampled-flow matching must still rely on shared flow-key and timestamp logic rather than assuming sampled runs know baseline IDs in advance.
-- The byte-basis handling is currently limited to `captured_len`.
+- `1:1` is the only ground-truth baseline in the MVP.
+- The module filters to `flow_eligible = true` packets before reconstruction.
+- Packets are sorted by the configured flow-key fields, then by `timestamp_us`, then by `packet_index`.
+- A new flow starts when either:
+  - the directional flow key changes, or
+  - the packet gap for the current key is greater than `inactivity_timeout_seconds`
+- Gaps exactly equal to the timeout stay in the same flow. Only gaps greater than the timeout split the flow.
+- `flow_sequence` counts baseline-flow fragments within the same directional key.
+- `flow_id` is assigned after sorting the finalized rows by `start_ts`, flow key, and `flow_sequence`, which makes the output deterministic for a fixed packet table.
+- `byte_count` is computed from the configured byte basis. The current implementation supports `captured_len` only.
+- Zero-duration flows are retained with `duration_seconds = 0.0` and null sending-rate fields.
+- Single-packet flows remain valid baseline flows.
 
 ## Upstream and downstream contracts
 
-- Upstream: `packet_extraction`, `shared`.
-- Downstream: `sampling`, `metrics`.
+- Upstream contract:
+  - `packet_extraction` must already have written a non-empty canonical packet table.
+  - Flow-eligible packets must not contain null values in the configured flow-key fields.
+- Downstream contract:
+  - `sampling` depends on this module as the explicit ground-truth gate, even though sampled-flow reconstruction is performed from sampled packets only.
+  - `metrics` consumes the baseline flow intervals, sizes, and sending-rate columns directly.
+
+## Assumptions and limitations
+
+- The reference implementation is CPU-first and stateful by design for clarity and determinism.
+- Baseline flow IDs are deterministic for a fixed input packet table but should not be treated as a substitute for re-matching sampled packets.
+- Only the `captured_len` byte basis is supported.
+- Errors in this module invalidate every downstream completeness and distortion result because all `1:X` runs compare back to this baseline.

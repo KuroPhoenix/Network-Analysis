@@ -2,24 +2,23 @@
 
 ## Usage notes
 
+- Treat `timestamp_us` and `packet_index` as canonical. Downstream timeout handling and systematic sampling both depend on them.
 - Keep the canonical packet schema stable once downstream modules depend on it.
-- Preserve field names required by the directional 5-tuple contract.
-- Keep packet-order columns deterministic because systematic packet sampling depends on them.
-- Treat `timestamp_us` as the canonical time field for ordering and exact timeout comparisons.
+- Preserve all packets in the packet table, even when they are not flow-eligible under the default 5-tuple.
 
 ## Maintenance guidelines
 
-- Keep backend-specific parser details isolated from downstream modules.
-- Update this module and `shared` together when packet schema contracts change.
-- If the parser backend changes, revalidate timestamp handling, nullability of `wire_len`, and the `flow_eligible` semantics on mixed packet captures.
+- If parser backends change, revalidate timestamp precision, packet ordering, TCP/UDP eligibility, and `captured_len` semantics.
+- Keep `flow_ineligible_reason` values explicit and documented when adding new ineligibility cases.
+- Update this module and `shared` together when canonical packet fields or byte-basis assumptions change.
 
 ## Operational caveats
 
-- Do not silently drop malformed or unsupported packets without recording that fact.
-- Avoid mixing packet and byte semantics in column names.
-- A packet being present in the table does not imply it is eligible for the default flow key.
+- A packet row being present does not imply it participates in baseline flow construction.
+- Silent packet drops are methodology defects here because they would distort both baseline and sampled packet streams.
+- `wire_len` is intentionally null in the current CPU reference path. Do not repurpose it for another byte meaning.
 
 ## Recommendations for future work
 
-- Add richer extraction metadata if downstream debugging needs it.
-- Extend protocol support only when the flow-key definition for non-TCP/UDP traffic is made explicit.
+- Add parser diagnostics only if they can be kept lightweight and clearly separated from the canonical packet schema.
+- Extend protocol support only when the repo adopts an explicit non-TCP/UDP flow-key contract.

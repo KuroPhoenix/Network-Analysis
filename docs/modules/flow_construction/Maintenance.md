@@ -3,22 +3,23 @@
 ## Usage notes
 
 - Treat timeout changes as methodology changes and document them explicitly.
-- Keep the flow key stable across baseline and sampled reconstructions unless an experiment explicitly studies another key.
-- Re-run boundary tests whenever flow ordering, key grouping, or timestamp handling changes.
-- Keep the canonical microsecond bounds and the human-readable datetime bounds in sync.
+- Keep the flow key identical across baseline and sampled reconstructions unless the experiment explicitly studies another key.
+- Re-run boundary coverage whenever ordering, timeout comparison, or byte accounting changes.
 
 ## Maintenance guidelines
 
-- Add targeted tests for boundary cases, especially exactly `15` seconds and greater-than-`15`-second gaps.
-- Re-check determinism after any optimisation or chunking change.
-- Keep zero-duration flow handling explicit. Do not silently replace undefined sending rates with zero.
+- Preserve the `gap > timeout` split rule unless the repo methodology changes.
+- Keep `timestamp_us` and `packet_index` in sync with packet-extraction semantics.
+- Revalidate determinism after any performance optimization, chunking attempt, or parser change.
+- Keep zero-duration handling explicit. Do not coerce undefined sending rates to zero.
 
 ## Operational caveats
 
-- This module defines the baseline used by all later comparisons. Errors here invalidate every sampled comparison.
-- Matching downstream sampled flows by `flow_id` alone is not valid because sampled reconstruction must be derived independently from sampled packets.
+- This module defines the only ground-truth baseline. A subtle bug here contaminates every downstream `1:X` comparison.
+- Matching sampled observations by `flow_id` alone is not valid. Downstream logic must continue to match by shared flow key and time interval.
+- Eligible packets with null key fields are rejected by design.
 
 ## Recommendations for future work
 
-- Add tiny deterministic fixtures that exercise timeout boundaries and single-packet flows.
-- Extend byte accounting only when the alternative byte definition is made explicit in shared config and documentation.
+- Add more targeted fixtures around multi-file ordering, timeout boundaries, and repeated directional keys if flow construction logic changes.
+- Extend byte-basis support only when the new definition is made explicit in shared config, tests, and module docs.

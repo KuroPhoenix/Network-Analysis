@@ -2,43 +2,86 @@
 
 ## Purpose
 
-The `packet_extraction` module converts staged `PCAP` or `PCAPNG` captures into a canonical packet table suitable for baseline and sampled flow reconstruction. It keeps full packet-stream order, writes Parquet as the main intermediate format, and retains packets that are not eligible for the default directional 5-tuple so sampling still operates on the full packet stream.
+The `packet_extraction` module converts staged `PCAP` or `PCAPNG` files into the canonical packet table used by baseline flow construction, sampling, and metric matching. It is the first packet-scale Parquet artefact in the MVP and preserves full packet-stream order rather than pre-filtering down to only flow-eligible traffic.
 
-## Current scope
+## Inputs
 
-This module is now implemented for the local MVP start. It uses `dpkt` as a CPU reference parser for `PCAP` and `PCAPNG` and writes:
+- `data/processed/{dataset_id}/ingest_manifest.parquet` from `ingest`
+- Staged capture files referenced by that manifest
+- Shared methodology settings:
+  - flow-key field names
+  - byte basis
+  - dataset identifier
+
+The implementation requires the ingest manifest to provide at least:
+
+- `staged_file`
+- `capture_format`
+- `source_discovery_index`
+- `source_member_index`
+
+## Outputs
 
 - `data/processed/{dataset_id}/packets.parquet`
 - `data/processed/{dataset_id}/packet_extraction_manifest.parquet`
 
-## Inputs
+The canonical packet table contains these columns:
 
-- Staged packet-capture files from `ingest`.
-- Parser configuration and shared schema definitions.
+- `dataset_id`
+- `source_discovery_index`
+- `source_member_index`
+- `source_file`
+- `packet_index`
+- `source_packet_index`
+- `timestamp_us`
+- `timestamp`
+- `captured_len`
+- `wire_len`
+- `protocol`
+- `src_ip`
+- `dst_ip`
+- `src_port`
+- `dst_port`
+- `tcp_flags`
+- `flow_eligible`
+- `flow_ineligible_reason`
 
-## Outputs
+The extraction manifest currently records:
 
-- Canonical packet tables written as Parquet.
-- Extraction metadata including total packet count and flow-eligible/ineligible packet counts.
-- Explicit provenance-order columns (`source_discovery_index`, `source_member_index`, `source_packet_index`) plus canonical `timestamp_us`.
+- `dataset_id`
+- `source_file_count`
+- `total_packets`
+- `flow_eligible_packets`
+- `flow_ineligible_packets`
+- `earliest_timestamp`
+- `latest_timestamp`
 
 ## Methodology and implementation logic
 
-- Preserve packet order semantics.
-- Freeze packet order on explicit source-file discovery order plus source packet order, not on timestamp sorting.
-- Preserve timestamp fidelity.
-- Extract the fields needed for the directional 5-tuple flow key and later flow metrics.
-- Preserve all packets in the canonical table so later sampling operates on the full trace rather than a pre-filtered subset.
-- Mark packets as `flow_eligible = false` when they lack the full default directional 5-tuple. In the current MVP this mainly affects non-IP packets and IP packets whose transport protocol is not TCP or UDP.
-- Use `captured_len` as the explicit byte basis when byte-based size metrics are requested later. `wire_len` remains null unless the parser exposes an original on-wire length explicitly.
-
-## Assumptions and limitations
-
-- The current parser records `timestamp_us` as the canonical ordering and time-comparison field. The human-readable `timestamp` column is derived from it.
-- Default flow reconstruction support is currently constrained to packets with a full TCP or UDP directional 5-tuple.
-- Unsupported packets are retained for ordering and sampling but excluded from default flow reconstruction via the eligibility flags.
+- Files are processed in ingest-manifest order: first by `source_discovery_index`, then by `source_member_index`.
+- Packets inside each file are read in capture order and given a deterministic `source_packet_index`.
+- The module assigns a global `packet_index` after concatenating all packet rows. Systematic sampling later depends on this index.
+- `timestamp_us` is the canonical microsecond timestamp used for ordering and timeout comparisons. The `timestamp` column is a UTC datetime derived from it.
+- The CPU reference parser is `dpkt`.
+- The current eligibility rule matches the repo default directional 5-tuple:
+  - IPv4 or IPv6 plus TCP or UDP produces `flow_eligible = true`.
+  - Non-IP traffic and IP traffic without TCP or UDP are retained in the packet table but marked ineligible.
+- `captured_len` is the explicit byte basis used by downstream byte-based metrics in the MVP.
+- `wire_len` is currently emitted as null because this parser path does not recover a trustworthy original wire length.
+- The module fails loudly on malformed or unreadable capture content instead of silently dropping packets.
 
 ## Upstream and downstream contracts
 
-- Upstream: `ingest`, `shared`.
-- Downstream: `flow_construction`, `sampling`.
+- Upstream contract:
+  - `ingest` must already have written a non-empty manifest.
+  - `staged_file` paths must exist and `capture_format` must be one of `pcap` or `pcapng`.
+- Downstream contract:
+  - `flow_construction` requires `packet_index`, `timestamp_us`, `timestamp`, `captured_len`, `wire_len`, `flow_eligible`, and the configured flow-key fields.
+  - `sampling` expects the full packet table, including ineligible packets, so packet-selection semantics apply to the same packet stream as the baseline run.
+
+## Assumptions and limitations
+
+- The parser assumes Ethernet-encapsulated packets through `dpkt.ethernet.Ethernet`.
+- Only TCP and UDP packets over IPv4 or IPv6 are eligible for the default flow reconstruction path.
+- `tcp_flags` are captured for TCP packets only and stored as a stringified integer flag value.
+- The module does not currently emit richer parser diagnostics such as decode-error counters or link-layer metadata beyond what is needed for the MVP.
