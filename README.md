@@ -125,7 +125,33 @@ python scripts/create_demo_capture.py --overwrite
 python scripts/run_pipeline.py --config configs/demo.pipeline.yaml run
 ```
 
-That flow writes the demo capture under `data/raw/demo_trace/`, then runs the local pipeline through metric computation with plotting disabled.
+That flow writes the demo capture under `data/raw/demo_trace/`, then runs the local pipeline through metric computation and lightweight plotting.
+
+## Batch Dataset Folders
+
+If you want one reusable config that scans `datasets/` automatically, use:
+
+```bash
+python scripts/run_dataset_batches.py --config configs/datasets.batch.yaml plan
+python scripts/run_dataset_batches.py --config configs/datasets.batch.yaml run
+```
+
+The batch runner treats each immediate subfolder under the configured `datasets_root` as one dataset collection, discovers capture files recursively inside it, and runs the existing single-dataset pipeline once per capture file. This avoids concatenating unrelated traces into one synthetic baseline run.
+
+By default, the runner infers a traffic category from filenames such as `BRAS_capture_game_1.pcap` and stores outputs like this:
+
+```text
+results/
+  Anonymized_bras_dataset/
+    game/
+      tables/
+      plots/
+    video/
+      tables/
+      plots/
+```
+
+If a filename does not match the default category pattern, it is stored under `uncategorized/`.
 
 ## Dataset Expectations
 

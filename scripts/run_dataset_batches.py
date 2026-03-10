@@ -1,0 +1,16 @@
+"""Local wrapper for the dataset-folder batch CLI without requiring installation."""
+
+from pathlib import Path
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_ROOT = REPO_ROOT / "src"
+
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
+
+from network_analysis.batch_cli import main_entry
+
+
+if __name__ == "__main__":
+    main_entry()

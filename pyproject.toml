@@ -16,6 +16,7 @@ dependencies = [
 
 [project.scripts]
 network-analysis = "network_analysis.cli:main_entry"
+network-analysis-batch = "network_analysis.batch_cli:main_entry"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -83,10 +83,10 @@ def discover_raw_files(
             f"No raw files matched {config.dataset.raw_glob!r} under {config.dataset.input_dir}"
         )
 
-    return [(path, *_infer_capture_details(path)) for path in raw_files]
+    return [(path, *infer_capture_details(path)) for path in raw_files]
 
 
-def _infer_capture_details(path: Path) -> tuple[CaptureFormat | None, CompressionType]:
+def infer_capture_details(path: Path) -> tuple[CaptureFormat | None, CompressionType]:
     suffixes = [suffix.lower() for suffix in path.suffixes]
     if not suffixes:
         raise ValueError(f"Unsupported raw file without a capture or archive suffix: {path}")
