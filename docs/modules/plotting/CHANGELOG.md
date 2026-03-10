@@ -2,7 +2,7 @@
 
 ## 2026-03-10
 
-1. Purpose of modification: document the initial plotting-module boundary.
-2. What changed: added initial documentation for metric-driven plotting inputs, outputs, and labelling constraints.
-3. Impact on other pipeline modules: later result-generation work can assume a dedicated plotting module instead of embedding chart code elsewhere.
-4. Required maintenance or follow-up updates: update this documentation when the first minimal plot and plotting backend are implemented.
+1. Purpose of modification: implement the optional MVP plotting module.
+2. What changed: added a lightweight SVG renderer that consumes `metric_summary` and writes a deterministic flow-detection-rate plot without changing any metric semantics.
+3. Impact on other pipeline modules: the demo pipeline can now exercise a complete path through plotting while keeping the plotting logic separate from metrics.
+4. Required maintenance or follow-up updates: extend the module only when additional plots can be justified without hiding or redefining the underlying metric contract.

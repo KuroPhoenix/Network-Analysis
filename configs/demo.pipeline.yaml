@@ -28,4 +28,4 @@ sampling:
 
 runtime:
   workers: 1
-  enable_plots: false
+  enable_plots: true

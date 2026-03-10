@@ -7,6 +7,7 @@ This directory documents the synthetic local demo used to validate the MVP witho
 1. Install the project dependencies so `dpkt` is available.
 2. Run `python3 scripts/create_demo_capture.py` from the repository root.
 3. Use `configs/demo.pipeline.yaml` as the pipeline config for the local end-to-end example.
+4. The demo config now enables plotting, so a detection-rate plot is written under `results/plots/demo_trace/`.
 
 ## Demo Contract
 
