@@ -3,18 +3,22 @@
 ## Usage notes
 
 - Keep the canonical packet schema stable once downstream stages depend on it.
-- Add new packet fields only when their downstream use is clear and documented.
+- Preserve field names required by the directional 5-tuple contract.
+- Keep packet-order columns deterministic because systematic packet sampling depends on them.
 
 ## Maintenance guidelines
 
-- Review timestamp handling carefully after any parser or backend change.
-- Keep packet-order guarantees explicit in tests and documentation.
+- Keep backend-specific parser details isolated from downstream modules.
+- Update this module and `shared` together when packet schema contracts change.
+- If the parser backend changes, revalidate timestamp handling and the `flow_eligible` semantics on mixed packet captures.
 
 ## Operational caveats
 
-- Packet extraction is a correctness-critical boundary. Small timestamp or field-mapping errors will propagate into every later metric.
+- Do not silently drop malformed or unsupported packets without recording that fact.
+- Avoid mixing packet and byte semantics in column names.
+- A packet being present in the table does not imply it is eligible for the default flow key.
 
 ## Recommendations for future work
 
-- Add fixtures that prove field extraction on tiny `PCAP` and `PCAPNG` examples.
-- Add schema validation tests for required packet columns.
+- Add richer extraction metadata if downstream debugging needs it.
+- Extend protocol support only when the flow-key definition for non-TCP/UDP traffic is made explicit.

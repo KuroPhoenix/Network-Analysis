@@ -9,6 +9,8 @@ description = "Local-first modular pipeline for packet-trace sampling evaluation
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+  "dpkt>=1.9.8",
+  "polars>=1.30.0",
   "PyYAML>=6.0",
 ]
 
@@ -21,4 +23,3 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-

@@ -19,8 +19,31 @@ class SamplingMethod(StrEnum):
     RANDOM = "random"
 
 
+class ByteBasis(StrEnum):
+    """Supported byte definitions for flow-size accounting."""
+
+    CAPTURED_LEN = "captured_len"
+
+
+class CaptureFormat(StrEnum):
+    """Packet capture formats supported by the MVP."""
+
+    PCAP = "pcap"
+    PCAPNG = "pcapng"
+
+
+class CompressionType(StrEnum):
+    """Compression wrappers supported by the MVP ingest stage."""
+
+    NONE = "none"
+    GZIP = "gzip"
+    XZ = "xz"
+    ZIP = "zip"
+    RAR = "rar"
+
+
 class ArtifactKind(StrEnum):
-    """High-level artifact types emitted by stage modules."""
+    """High-level artifact types emitted by pipeline modules."""
 
     DIRECTORY = "directory"
     TABLE = "table"
@@ -28,8 +51,8 @@ class ArtifactKind(StrEnum):
     PLOT = "plot"
 
 
-class StageName(StrEnum):
-    """Named pipeline stages used in code and documentation."""
+class ModuleName(StrEnum):
+    """Named pipeline modules used in code and documentation."""
 
     DATASET_REGISTRY = "dataset_registry"
     INGEST = "ingest"
@@ -61,11 +84,10 @@ class TableSchema:
 
 @dataclass(frozen=True)
 class ArtifactContract:
-    """An artifact emitted by a pipeline stage."""
+    """An artifact emitted by a pipeline module."""
 
     name: str
     relative_path_template: str
     format: str
     description: str
     kind: ArtifactKind = ArtifactKind.TABLE
-

@@ -1,20 +1,20 @@
-"""Base contracts shared by stage modules."""
+"""Base contracts shared by pipeline modules."""
 
 from dataclasses import dataclass
 
-from network_analysis.shared.config import PipelineConfig
-from network_analysis.shared.types import ArtifactContract, StageName
+from ..shared.config import PipelineConfig
+from ..shared.types import ArtifactContract, ModuleName
 
 
-class StageNotImplementedError(NotImplementedError):
-    """Raised when a stage placeholder is invoked before implementation."""
+class ModuleNotImplementedError(NotImplementedError):
+    """Raised when a module placeholder is invoked before implementation."""
 
 
 @dataclass(frozen=True)
-class StageContract:
-    """Static description of a pipeline stage module."""
+class ModuleContract:
+    """Static description of a pipeline module."""
 
-    name: StageName
+    name: ModuleName
     description: str
     inputs: tuple[str, ...]
     outputs: tuple[ArtifactContract, ...]

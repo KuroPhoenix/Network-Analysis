@@ -18,6 +18,7 @@ methodology:
     - protocol
   inactivity_timeout_seconds: 15
   size_basis: packets
+  byte_basis: captured_len
 
 sampling:
   rates:
@@ -28,4 +29,3 @@ sampling:
 runtime:
   workers: 1
   enable_plots: false
-

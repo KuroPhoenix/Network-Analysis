@@ -1,6 +1,6 @@
-"""Stage modules for the modular MVP pipeline."""
+"""Pipeline modules for the modular MVP pipeline."""
 
-from network_analysis.stages import (
+from . import (
     dataset_registry,
     flow_construction,
     ingest,
@@ -19,4 +19,3 @@ __all__ = [
     "plotting",
     "sampling",
 ]
-

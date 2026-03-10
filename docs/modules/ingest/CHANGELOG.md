@@ -2,7 +2,7 @@
 
 ## 2026-03-10
 
-1. Purpose of modification: document the ingest-stage contract for the Stage 1 skeleton.
-2. What changed: added initial documentation for raw-file discovery, immutable staging, and explicit decompression expectations.
-3. Impact on other modules or pipeline stages: packet extraction can later depend on a stable staged-file manifest instead of raw path guessing.
-4. Required maintenance or follow-up updates: update this documentation when supported archive formats, manifests, or checksum behaviour are implemented.
+1. Purpose of modification: turn ingest into an executable staging step for the local MVP.
+2. What changed: implemented deterministic staging for direct captures plus explicit `.gz`, `.xz`, and `.zip` handling, and added checksum-backed Parquet ingest manifests.
+3. Impact on other modules or pipeline stages: packet extraction now reads a stable staged-file manifest instead of guessing which raw path or wrapper to parse.
+4. Required maintenance or follow-up updates: add broader archive support only if it can remain explicit and reproducible.

@@ -25,7 +25,7 @@ Always process the unsampled full trace first. The `1:1` case is the ground-trut
 Each pipeline stage must be implemented as a separate module with a clear input contract, output contract, and validation boundary.
 
 ### 3. Thin orchestration
-The final runnable entrypoint should be a **thin driver** that composes the stage modules. It must not hide methodology decisions or contain the core business logic.
+The final runnable entrypoint should be a **thin driver** that composes the pipeline modules. It must not hide methodology decisions or contain the core business logic.
 
 ### 4. Local correctness before scale
 The MVP must work correctly and reproducibly on a single machine before optimisation, Docker packaging, or Kubernetes scheduling are attempted.
@@ -73,7 +73,7 @@ These documents must be kept consistent with the implemented behaviour, interfac
 7. plotting and report outputs
 8. containerisation and deployment only when explicitly requested
 
-This MVP specification describes the detailed implementation scope starting at ingest, but the codebase should still reserve a distinct `dataset_registry` module and should prefer **named stage modules** over numeric stage IDs in imports, file names, and documentation. This avoids ambiguity between the repo-wide conceptual pipeline and the narrower MVP implementation sequence.
+This MVP specification describes the detailed implementation scope starting at ingest, but the codebase should still reserve a distinct `dataset_registry` module and should prefer **named pipeline modules** over numeric stage IDs in imports, file names, and documentation. This avoids ambiguity between the repo-wide conceptual pipeline and the narrower MVP implementation sequence.
 
 The MVP must cover these stages:
 
@@ -403,7 +403,7 @@ Provide one runnable local command that composes the implemented modules into an
 
 ### Rules
 - the driver must remain thin;
-- stage logic belongs in the stage modules, not the driver;
+- module logic belongs in the pipeline modules, not the driver;
 - configuration should drive methodology-relevant behaviour.
 
 ### Validation
@@ -467,7 +467,7 @@ project/
     <package_name>/
       cli.py
       shared/
-      stages/
+      modules/
         dataset_registry.py
         ingest.py
         packet_extraction.py

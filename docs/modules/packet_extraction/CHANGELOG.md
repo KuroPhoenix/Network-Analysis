@@ -2,7 +2,7 @@
 
 ## 2026-03-10
 
-1. Purpose of modification: document the canonical packet-table boundary for the Stage 1 skeleton.
-2. What changed: added initial documentation for staged-input expectations, packet-table outputs, and parser-stage responsibilities.
-3. Impact on other modules or pipeline stages: later flow-building and sampling logic can target one canonical packet representation.
-4. Required maintenance or follow-up updates: expand this documentation when parser selection, required fields, and Parquet schema details are implemented.
+1. Purpose of modification: turn packet extraction into the first Parquet-producing analysis step.
+2. What changed: implemented `dpkt`-based `PCAP`/`PCAPNG` parsing, deterministic packet indexing, eligibility flags for default flow reconstruction, and a Parquet extraction manifest.
+3. Impact on other modules or pipeline stages: flow construction and sampling can now consume a stable canonical packet table instead of raw capture files.
+4. Required maintenance or follow-up updates: revisit protocol eligibility and byte accounting if the repo later adopts a wider flow-key definition.

@@ -1,6 +1,7 @@
 """Shared configuration, constants, and schema definitions."""
 
-from network_analysis.shared.config import (
+from .artifacts import DatasetArtifactPaths, build_artifact_paths
+from .config import (
     ConfigError,
     DatasetConfig,
     MethodologyConfig,
@@ -10,14 +11,17 @@ from network_analysis.shared.config import (
     SamplingConfig,
     load_pipeline_config,
 )
-from network_analysis.shared.constants import (
+from .constants import (
+    DEFAULT_BYTE_BASIS,
     DEFAULT_FLOW_KEY_FIELDS,
     DEFAULT_INACTIVITY_TIMEOUT_SECONDS,
 )
 
 __all__ = [
     "ConfigError",
+    "DatasetArtifactPaths",
     "DatasetConfig",
+    "DEFAULT_BYTE_BASIS",
     "DEFAULT_FLOW_KEY_FIELDS",
     "DEFAULT_INACTIVITY_TIMEOUT_SECONDS",
     "MethodologyConfig",
@@ -25,6 +29,6 @@ __all__ = [
     "PipelineConfig",
     "RuntimeConfig",
     "SamplingConfig",
+    "build_artifact_paths",
     "load_pipeline_config",
 ]
-

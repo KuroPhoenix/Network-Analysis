@@ -1,12 +1,12 @@
-"""Sampling stage contract."""
+"""Sampling module contract."""
 
-from network_analysis.shared.constants import PREFERRED_TABULAR_FORMAT
-from network_analysis.shared.config import PipelineConfig
-from network_analysis.shared.types import ArtifactContract, ArtifactKind, StageName
-from network_analysis.stages.base import StageContract, StageNotImplementedError
+from .base import ModuleContract, ModuleNotImplementedError
+from ..shared.constants import PREFERRED_TABULAR_FORMAT
+from ..shared.config import PipelineConfig
+from ..shared.types import ArtifactContract, ArtifactKind, ModuleName
 
-STAGE_CONTRACT = StageContract(
-    name=StageName.SAMPLING,
+MODULE_CONTRACT = ModuleContract(
+    name=ModuleName.SAMPLING,
     description="Generate sampled packet or flow artefacts for configured 1:X rates.",
     inputs=(
         "canonical packet table",
@@ -33,16 +33,15 @@ STAGE_CONTRACT = StageContract(
 )
 
 
-def describe_stage() -> StageContract:
-    """Return the static stage contract."""
+def describe_module() -> ModuleContract:
+    """Return the static module contract."""
 
-    return STAGE_CONTRACT
+    return MODULE_CONTRACT
 
 
-def run_stage(config: PipelineConfig) -> None:
-    """Placeholder entrypoint for the sampling stage."""
+def run_module(config: PipelineConfig) -> None:
+    """Placeholder entrypoint for the sampling module."""
 
-    raise StageNotImplementedError(
-        f"{STAGE_CONTRACT.name} is not implemented yet. Use the Stage 1 CLI in dry-run mode."
+    raise ModuleNotImplementedError(
+        f"{MODULE_CONTRACT.name} is not implemented yet. Use the current CLI in dry-run mode."
     )
-

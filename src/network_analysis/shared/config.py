@@ -6,14 +6,15 @@ from typing import Any
 
 import yaml
 
-from network_analysis.shared.constants import (
+from .constants import (
+    DEFAULT_BYTE_BASIS,
     DEFAULT_FLOW_KEY_FIELDS,
     DEFAULT_INACTIVITY_TIMEOUT_SECONDS,
     DEFAULT_SAMPLING_METHOD,
     DEFAULT_SAMPLING_RATES,
     DEFAULT_SIZE_BASIS,
 )
-from network_analysis.shared.types import SamplingMethod, SizeBasis
+from .types import ByteBasis, SamplingMethod, SizeBasis
 
 
 class ConfigError(ValueError):
@@ -31,7 +32,7 @@ class DatasetConfig:
 
 @dataclass(frozen=True)
 class OutputConfig:
-    """Repository output locations used by stage modules."""
+    """Repository output locations used by pipeline modules."""
 
     staged_dir: Path
     processed_dir: Path
@@ -46,11 +47,19 @@ class MethodologyConfig:
     flow_key_fields: tuple[str, ...] = DEFAULT_FLOW_KEY_FIELDS
     inactivity_timeout_seconds: int = DEFAULT_INACTIVITY_TIMEOUT_SECONDS
     size_basis: SizeBasis = SizeBasis(DEFAULT_SIZE_BASIS)
+    byte_basis: ByteBasis = ByteBasis(DEFAULT_BYTE_BASIS)
+
+    def requested_size_bases(self) -> tuple[SizeBasis, ...]:
+        """Return the concrete size bases that downstream modules should compute."""
+
+        if self.size_basis == SizeBasis.BOTH:
+            return (SizeBasis.PACKETS, SizeBasis.BYTES)
+        return (self.size_basis,)
 
 
 @dataclass(frozen=True)
 class SamplingConfig:
-    """Sampling settings used by later stages."""
+    """Sampling settings used by later pipeline modules."""
 
     rates: tuple[int, ...] = DEFAULT_SAMPLING_RATES
     method: SamplingMethod = SamplingMethod(DEFAULT_SAMPLING_METHOD)
@@ -93,6 +102,7 @@ class PipelineConfig:
             f"Sampling rates: {', '.join(f'1:{rate}' for rate in self.sampling.normalized_rates())}",
             f"Sampling method: {self.sampling.method}",
             f"Size basis: {self.methodology.size_basis}",
+            f"Byte basis: {self.methodology.byte_basis}",
             f"Staged dir: {self.output.staged_dir}",
             f"Processed dir: {self.output.processed_dir}",
             f"Results tables dir: {self.output.results_tables_dir}",
@@ -135,6 +145,7 @@ def load_pipeline_config(path: str | Path) -> PipelineConfig:
             "methodology.inactivity_timeout_seconds",
         ),
         size_basis=_parse_size_basis(methodology_data.get("size_basis", DEFAULT_SIZE_BASIS)),
+        byte_basis=_parse_byte_basis(methodology_data.get("byte_basis", DEFAULT_BYTE_BASIS)),
     )
     sampling = SamplingConfig(
         rates=_parse_sampling_rates(sampling_data.get("rates", DEFAULT_SAMPLING_RATES)),
@@ -221,6 +232,13 @@ def _parse_sampling_method(value: Any) -> SamplingMethod:
         return SamplingMethod(str(value))
     except ValueError as exc:
         raise ConfigError("sampling.method must be one of systematic or random.") from exc
+
+
+def _parse_byte_basis(value: Any) -> ByteBasis:
+    try:
+        return ByteBasis(str(value))
+    except ValueError as exc:
+        raise ConfigError("methodology.byte_basis must be one of: captured_len.") from exc
 
 
 def _parse_sampling_rates(value: Any) -> tuple[int, ...]:

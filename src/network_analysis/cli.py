@@ -6,9 +6,9 @@ import argparse
 from pathlib import Path
 from typing import Sequence
 
+from network_analysis.modules.base import ModuleNotImplementedError
 from network_analysis.pipeline.driver import render_pipeline_plan, run_pipeline
 from network_analysis.shared.config import ConfigError, load_pipeline_config
-from network_analysis.stages.base import StageNotImplementedError
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -16,7 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(
         prog="network-analysis",
-        description="Local-first pipeline CLI skeleton for packet-trace flow analysis.",
+        description="Local-first pipeline CLI for packet-trace flow analysis.",
     )
     parser.add_argument(
         "--config",
@@ -32,16 +32,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers.add_parser(
         "plan",
-        help="Print the named stage plan without executing any stage logic.",
+        help="Print the named module plan without executing any module logic.",
     )
     run_parser = subparsers.add_parser(
         "run",
-        help="Run the pipeline. In Stage 1 only --dry-run is expected to succeed.",
+        help="Run the pipeline. In the current MVP state only --dry-run is expected to succeed.",
     )
     run_parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Print the execution plan without invoking stage implementations.",
+        help="Print the execution plan without invoking module implementations.",
     )
     return parser
 
@@ -68,8 +68,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     except ConfigError as exc:
         print(f"Configuration error: {exc}")
         return 2
-    except StageNotImplementedError as exc:
-        print(f"Stage implementation pending: {exc}")
+    except ModuleNotImplementedError as exc:
+        print(f"Module implementation pending: {exc}")
         return 3
 
     parser.error(f"Unsupported command: {args.command}")
@@ -80,4 +80,3 @@ def main_entry() -> None:
     """Console-script wrapper."""
 
     raise SystemExit(main())
-

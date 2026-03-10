@@ -1,21 +1,28 @@
 """Documented schema contracts for the MVP pipeline artifacts."""
 
-from network_analysis.shared.constants import PREFERRED_TABULAR_FORMAT
-from network_analysis.shared.types import TableColumn, TableSchema
+from .constants import PREFERRED_TABULAR_FORMAT
+from .types import TableColumn, TableSchema
 
 DATASET_REGISTRY_SCHEMA = TableSchema(
     name="dataset_registry",
     format=PREFERRED_TABULAR_FORMAT,
     columns=(
         TableColumn("dataset_id", "string", "Configured dataset identifier."),
+        TableColumn("discovery_index", "int64", "Deterministic discovery order for raw files."),
         TableColumn("input_dir", "string", "Resolved raw input directory."),
         TableColumn("raw_glob", "string", "Discovery glob for raw capture files."),
-        TableColumn("flow_key", "list[string]", "Configured flow-key field order."),
+        TableColumn("raw_file", "string", "Discovered raw capture or archive path."),
+        TableColumn("raw_file_size_bytes", "int64", "Raw file size in bytes."),
+        TableColumn("capture_format_hint", "string", "Capture format inferred from the file name.", required=False),
+        TableColumn("compression_type", "string", "Compression wrapper inferred from the file name."),
+        TableColumn("flow_key", "string", "Configured flow-key field order."),
         TableColumn(
             "inactivity_timeout_seconds",
             "int64",
             "Configured inactivity timeout used by downstream stages.",
         ),
+        TableColumn("size_basis", "string", "Configured size basis selection."),
+        TableColumn("byte_basis", "string", "Configured byte definition when bytes are requested."),
     ),
 )
 
@@ -26,9 +33,13 @@ INGEST_MANIFEST_SCHEMA = TableSchema(
         TableColumn("dataset_id", "string", "Configured dataset identifier."),
         TableColumn("source_file", "string", "Raw input file path."),
         TableColumn("staged_file", "string", "Immutable staged capture path."),
+        TableColumn("staging_action", "string", "How the staged file was produced."),
         TableColumn("capture_format", "string", "Detected capture format."),
         TableColumn("compression_type", "string", "Detected compression wrapper."),
-        TableColumn("checksum", "string", "Optional checksum for reproducibility.", required=False),
+        TableColumn("source_sha256", "string", "SHA256 checksum of the source raw file."),
+        TableColumn("staged_sha256", "string", "SHA256 checksum of the staged capture file."),
+        TableColumn("source_size_bytes", "int64", "Raw input file size in bytes."),
+        TableColumn("staged_size_bytes", "int64", "Staged capture size in bytes."),
     ),
 )
 
@@ -38,8 +49,9 @@ PACKET_TABLE_SCHEMA = TableSchema(
     columns=(
         TableColumn("dataset_id", "string", "Configured dataset identifier."),
         TableColumn("source_file", "string", "Staged capture file path."),
-        TableColumn("packet_index", "int64", "Packet position in source capture."),
-        TableColumn("timestamp", "timestamp", "Per-packet timestamp."),
+        TableColumn("packet_index", "int64", "Deterministic dataset-wide packet index."),
+        TableColumn("source_packet_index", "int64", "Packet position in the staged source capture."),
+        TableColumn("timestamp", "datetime[us]", "Per-packet timestamp in UTC with microsecond precision."),
         TableColumn("captured_len", "int64", "Captured packet length."),
         TableColumn("wire_len", "int64", "On-wire packet length.", required=False),
         TableColumn("protocol", "string", "Transport or network protocol."),
@@ -48,6 +60,31 @@ PACKET_TABLE_SCHEMA = TableSchema(
         TableColumn("src_port", "int32", "Source transport port.", required=False),
         TableColumn("dst_port", "int32", "Destination transport port.", required=False),
         TableColumn("tcp_flags", "string", "TCP flags when applicable.", required=False),
+        TableColumn(
+            "flow_eligible",
+            "bool",
+            "Whether the packet has the full directional 5-tuple needed for flow reconstruction.",
+        ),
+        TableColumn(
+            "flow_ineligible_reason",
+            "string",
+            "Why the packet cannot be used for flow reconstruction under the default directional 5-tuple.",
+            required=False,
+        ),
+    ),
+)
+
+PACKET_EXTRACTION_MANIFEST_SCHEMA = TableSchema(
+    name="packet_extraction_manifest",
+    format=PREFERRED_TABULAR_FORMAT,
+    columns=(
+        TableColumn("dataset_id", "string", "Configured dataset identifier."),
+        TableColumn("source_file_count", "int64", "Number of staged capture files processed."),
+        TableColumn("total_packets", "int64", "Total packets observed across staged capture files."),
+        TableColumn("flow_eligible_packets", "int64", "Packets eligible for default flow reconstruction."),
+        TableColumn("flow_ineligible_packets", "int64", "Packets retained but excluded from flow reconstruction."),
+        TableColumn("earliest_timestamp", "datetime[us]", "Earliest packet timestamp.", required=False),
+        TableColumn("latest_timestamp", "datetime[us]", "Latest packet timestamp.", required=False),
     ),
 )
 
@@ -142,4 +179,3 @@ FLOW_METRIC_SCHEMA = TableSchema(
         ),
     ),
 )
-

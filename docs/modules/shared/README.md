@@ -2,11 +2,11 @@
 
 ## Purpose
 
-The `shared` module is the common definitions layer for the local-first pipeline MVP. It centralises configuration structures, constants, enumerations, type hints, and schema contracts that every stage must use.
+The `shared` module is the common definitions layer for the local-first pipeline MVP. It centralises configuration structures, constants, enumerations, type hints, schema contracts, and dataset artifact paths that every pipeline module must use.
 
-## Stage 1 scope
+## Current scope
 
-At Stage 1, this module is expected to hold shared definitions only. It does not parse packet captures or compute flow metrics.
+This module now holds the shared config, schema, type, constant, and artifact-path logic for the executable local MVP slices. It does not parse packet captures or compute flow metrics itself, but later modules now depend on it for resolved dataset artifact paths and the explicit byte-basis contract.
 
 ## Inputs
 
@@ -17,7 +17,8 @@ At Stage 1, this module is expected to hold shared definitions only. It does not
 
 - Normalised configuration objects.
 - Shared constants and type aliases.
-- Schema contracts for stage inputs and outputs.
+- Schema contracts for module inputs and outputs.
+- Resolved dataset artifact paths for staged, processed, and result outputs.
 
 ## Methodology and implementation logic
 
@@ -26,13 +27,14 @@ At Stage 1, this module is expected to hold shared definitions only. It does not
 - `1:1` is the ground-truth baseline.
 - Every `1:X` case must compare directly against the `1:1` baseline.
 - Size basis must remain explicit.
+- Byte basis must remain explicit when bytes are requested.
 - Raw inputs are treated as immutable.
 - Parquet is the preferred main intermediate tabular format.
 
 ## Assumptions and limitations
 
-- Stage 1 should expose the contracts cleanly, but later stages still need to implement real validation and runtime checks.
-- Dataset-specific metadata rules are not fully implemented yet.
+- The shared layer intentionally does not hide methodology decisions behind driver defaults; later modules still need to enforce their own runtime validation.
+- Dataset-specific acceptance metadata rules are still incomplete; the shared layer only carries the fields needed for reproducible local execution.
 
 ## Upstream and downstream contracts
 

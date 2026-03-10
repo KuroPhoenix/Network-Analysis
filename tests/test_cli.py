@@ -3,13 +3,13 @@
 from pathlib import Path
 
 from network_analysis.cli import main
-from network_analysis.pipeline.driver import get_stage_catalog
+from network_analysis.pipeline.driver import get_module_catalog
 
 
-def test_stage_catalog_uses_named_stage_modules() -> None:
-    stage_names = [stage.name for stage in get_stage_catalog()]
+def test_module_catalog_uses_named_modules() -> None:
+    module_names = [module.name for module in get_module_catalog()]
 
-    assert stage_names == [
+    assert module_names == [
         "dataset_registry",
         "ingest",
         "packet_extraction",
@@ -38,4 +38,3 @@ def test_cli_plan_prints_stage_sequence(sample_config_path: Path, capsys) -> Non
     assert "dataset_registry" in captured.out
     assert "packet_extraction" in captured.out
     assert "results/tables/fixture_trace_metric_summary.parquet" in captured.out
-
