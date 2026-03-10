@@ -2,11 +2,11 @@
 
 ## Purpose
 
-The `flow_construction` module will reconstruct directional `1:1` baseline flows from canonical packet tables using the shared flow key and inactivity timeout rules.
+The `flow_construction` module reconstructs directional `1:1` baseline flows from canonical packet tables using the shared flow key and inactivity timeout rules.
 
 ## Current scope
 
-This module is still a documented placeholder. Baseline flow reconstruction logic is not implemented yet.
+This module is now implemented for the local CPU reference path. It consumes the canonical packet table, filters to flow-eligible packets, groups packets by the configured directional flow key, and splits each key into separate baseline flows when the inactivity gap is greater than the configured timeout.
 
 ## Inputs
 
@@ -17,8 +17,16 @@ This module is still a documented placeholder. Baseline flow reconstruction logi
 
 ## Outputs
 
-- Baseline flow tables for the `1:1` ground-truth case.
-- Flow-level metadata needed by later sampling and metrics modules.
+- `data/processed/{dataset_id}/baseline_flows.parquet`
+- Baseline flow rows include:
+  - directional flow-key fields
+  - deterministic `flow_id`
+  - per-key `flow_sequence`
+  - start and end timestamps
+  - start and end packet indexes
+  - packet and byte counts
+  - packet and byte sending rates
+  - explicit `size_basis` and `byte_basis` metadata
 
 ## Methodology and implementation logic
 
@@ -26,11 +34,14 @@ This module is still a documented placeholder. Baseline flow reconstruction logi
 - Packet gaps of `15` seconds or less stay in the same flow unless config overrides the timeout explicitly.
 - Gaps greater than the timeout terminate the current flow and start a new one.
 - Single-packet flows remain valid flows.
+- Byte counts use the configured byte basis. In the current MVP that basis is `captured_len`.
+- Zero-duration flows keep `duration_seconds = 0` and leave sending-rate columns undefined rather than forcing a numeric value.
 
 ## Assumptions and limitations
 
-- This module does not yet reconstruct flows or write Parquet flow tables.
-- Later implementations must keep packets and bytes explicitly separated when both are supported.
+- The current implementation is CPU-first and iterates flow state in Python for determinism and clarity.
+- Flow IDs are deterministic for a given packet table, but sampled-flow matching must still rely on shared flow-key and timestamp logic rather than assuming sampled runs know baseline IDs in advance.
+- The byte-basis handling is currently limited to `captured_len`.
 
 ## Upstream and downstream contracts
 

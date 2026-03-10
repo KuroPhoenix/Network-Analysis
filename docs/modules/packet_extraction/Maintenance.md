@@ -5,12 +5,13 @@
 - Keep the canonical packet schema stable once downstream modules depend on it.
 - Preserve field names required by the directional 5-tuple contract.
 - Keep packet-order columns deterministic because systematic packet sampling depends on them.
+- Treat `timestamp_us` as the canonical time field for ordering and exact timeout comparisons.
 
 ## Maintenance guidelines
 
 - Keep backend-specific parser details isolated from downstream modules.
 - Update this module and `shared` together when packet schema contracts change.
-- If the parser backend changes, revalidate timestamp handling and the `flow_eligible` semantics on mixed packet captures.
+- If the parser backend changes, revalidate timestamp handling, nullability of `wire_len`, and the `flow_eligible` semantics on mixed packet captures.
 
 ## Operational caveats
 

@@ -10,6 +10,8 @@
 
 - Update this module first when adding a new module-level config parameter or shared schema.
 - Review downstream modules after any change to timeouts, flow keys, size basis labels, byte basis, or output-path conventions.
+- Review ingest and packet extraction together whenever provenance-order schema fields or canonical timestamp fields change.
+- Re-check schema columns against real module outputs whenever a previously placeholder module becomes executable.
 
 ## Operational caveats
 

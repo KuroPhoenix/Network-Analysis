@@ -6,7 +6,7 @@ The `shared` module is the common definitions layer for the local-first pipeline
 
 ## Current scope
 
-This module now holds the shared config, schema, type, constant, and artifact-path logic for the executable local MVP slices. It does not parse packet captures or compute flow metrics itself, but later modules now depend on it for resolved dataset artifact paths and the explicit byte-basis contract.
+This module now holds the shared config, schema, type, constant, and artifact-path logic for the executable local MVP slices. It does not parse packet captures or compute flow metrics itself, but later modules now depend on it for resolved dataset artifact paths, the explicit byte-basis contract, and the documented baseline-flow schema.
 
 ## Inputs
 
@@ -19,6 +19,8 @@ This module now holds the shared config, schema, type, constant, and artifact-pa
 - Shared constants and type aliases.
 - Schema contracts for module inputs and outputs.
 - Resolved dataset artifact paths for staged, processed, and result outputs.
+- Shared provenance-order schema fields used to keep packet ordering reproducible across multiple raw inputs.
+- Shared baseline-flow schema fields used to keep later sampled-flow matching methodologically consistent.
 
 ## Methodology and implementation logic
 
@@ -28,13 +30,16 @@ This module now holds the shared config, schema, type, constant, and artifact-pa
 - Every `1:X` case must compare directly against the `1:1` baseline.
 - Size basis must remain explicit.
 - Byte basis must remain explicit when bytes are requested.
+- Packet ordering must remain reproducible when multiple raw files or archive members are staged.
 - Raw inputs are treated as immutable.
 - Parquet is the preferred main intermediate tabular format.
+- Shared schemas should keep zero-duration and undefined-rate cases visible instead of coercing them into misleading numeric defaults.
 
 ## Assumptions and limitations
 
 - The shared layer intentionally does not hide methodology decisions behind driver defaults; later modules still need to enforce their own runtime validation.
 - Dataset-specific acceptance metadata rules are still incomplete; the shared layer only carries the fields needed for reproducible local execution.
+- Schema definitions assume the default directional 5-tuple unless a config override is made and propagated deliberately.
 
 ## Upstream and downstream contracts
 

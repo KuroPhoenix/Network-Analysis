@@ -20,19 +20,21 @@ This module is now implemented for the local MVP start. It uses `dpkt` as a CPU 
 
 - Canonical packet tables written as Parquet.
 - Extraction metadata including total packet count and flow-eligible/ineligible packet counts.
+- Explicit provenance-order columns (`source_discovery_index`, `source_member_index`, `source_packet_index`) plus canonical `timestamp_us`.
 
 ## Methodology and implementation logic
 
 - Preserve packet order semantics.
+- Freeze packet order on explicit source-file discovery order plus source packet order, not on timestamp sorting.
 - Preserve timestamp fidelity.
 - Extract the fields needed for the directional 5-tuple flow key and later flow metrics.
 - Preserve all packets in the canonical table so later sampling operates on the full trace rather than a pre-filtered subset.
 - Mark packets as `flow_eligible = false` when they lack the full default directional 5-tuple. In the current MVP this mainly affects non-IP packets and IP packets whose transport protocol is not TCP or UDP.
-- Use `captured_len` as the explicit byte basis when byte-based size metrics are requested later.
+- Use `captured_len` as the explicit byte basis when byte-based size metrics are requested later. `wire_len` remains null unless the parser exposes an original on-wire length explicitly.
 
 ## Assumptions and limitations
 
-- The current parser records `wire_len` as `captured_len` because the MVP path uses captured bytes as the explicit byte basis and does not recover a distinct original wire length from every input format.
+- The current parser records `timestamp_us` as the canonical ordering and time-comparison field. The human-readable `timestamp` column is derived from it.
 - Default flow reconstruction support is currently constrained to packets with a full TCP or UDP directional 5-tuple.
 - Unsupported packets are retained for ordering and sampling but excluded from default flow reconstruction via the eligibility flags.
 

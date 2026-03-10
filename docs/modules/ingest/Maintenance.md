@@ -11,6 +11,7 @@
 - Keep decompression logic reproducible and free of hidden side effects.
 - Update supported formats only when downstream parsing and provenance recording are also updated.
 - Preserve checksum coverage when new staging actions are introduced.
+- Preserve deterministic staged filenames and source-order metadata whenever new wrappers or archive layouts are added.
 
 ## Operational caveats
 

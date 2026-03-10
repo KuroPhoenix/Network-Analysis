@@ -106,6 +106,18 @@ Flow sending rate overestimation factor = flow size overestimation factor / flow
 
 These derived metrics are meant to quantify how far a sampled flow record deviates from the corresponding full-trace flow record. The overall purpose is not only to see whether a flow is detected, but also to see whether the reconstructed flow record remains trustworthy after sampling.
 
+## Local Setup
+
+Create a virtual environment and install the local pipeline package plus test dependencies:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+This repository uses a `src/` layout. Package-internal imports therefore use relative imports or `network_analysis...` imports, not `src.network_analysis...`. `pyrightconfig.json` points static analysis tools at `src/`, and `requirements.txt` includes an editable install of the local package for venv-based development.
+
 ## Dataset Expectations
 
 1. Dataset should be diverse. That is, datasets should encompass data centre network traces, national link bandwidth network traces, campus network traces, etc (Any domain is accepted).

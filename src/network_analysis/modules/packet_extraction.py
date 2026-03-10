@@ -53,7 +53,9 @@ def run_module(config: PipelineConfig) -> tuple[Path, Path]:
             f"Ingest manifest is missing. Run {ModuleName.INGEST} first: {artifact_paths.ingest_manifest}"
         )
 
-    ingest_manifest = pl.read_parquet(artifact_paths.ingest_manifest).sort("staged_file")
+    ingest_manifest = pl.read_parquet(artifact_paths.ingest_manifest).sort(
+        ["source_discovery_index", "source_member_index"]
+    )
     if ingest_manifest.is_empty():
         raise ValueError("Ingest manifest is empty.")
 
@@ -64,6 +66,8 @@ def run_module(config: PipelineConfig) -> tuple[Path, Path]:
                 dataset_id=config.dataset.dataset_id,
                 staged_file=Path(str(row["staged_file"])),
                 capture_format=CaptureFormat(str(row["capture_format"])),
+                source_discovery_index=int(row["source_discovery_index"]),
+                source_member_index=int(row["source_member_index"]),
             )
         )
 
@@ -72,14 +76,25 @@ def run_module(config: PipelineConfig) -> tuple[Path, Path]:
 
     packet_frame = (
         pl.DataFrame(packet_rows)
-        .sort(["timestamp", "source_file", "source_packet_index"])
+        .sort(["source_discovery_index", "source_member_index", "source_packet_index"])
         .with_row_index(name="packet_index", offset=1)
-        .with_columns(pl.col("packet_index").cast(pl.Int64))
+        .with_columns(
+            pl.col("packet_index").cast(pl.Int64),
+            pl.col("source_discovery_index").cast(pl.Int64),
+            pl.col("source_member_index").cast(pl.Int64),
+            pl.col("source_packet_index").cast(pl.Int64),
+            pl.col("timestamp_us").cast(pl.Int64),
+            pl.col("captured_len").cast(pl.Int64),
+            pl.col("wire_len").cast(pl.Int64),
+        )
         .select(
             "dataset_id",
+            "source_discovery_index",
+            "source_member_index",
             "source_file",
             "packet_index",
             "source_packet_index",
+            "timestamp_us",
             "timestamp",
             "captured_len",
             "wire_len",
@@ -119,6 +134,8 @@ def _extract_packets_from_file(
     dataset_id: str,
     staged_file: Path,
     capture_format: CaptureFormat,
+    source_discovery_index: int,
+    source_member_index: int,
 ) -> list[dict[str, object]]:
     reader_factory = _build_reader_factory(staged_file, capture_format)
     rows: list[dict[str, object]] = []
@@ -130,6 +147,8 @@ def _extract_packets_from_file(
                 _extract_packet_row(
                     dataset_id=dataset_id,
                     staged_file=staged_file,
+                    source_discovery_index=source_discovery_index,
+                    source_member_index=source_member_index,
                     source_packet_index=source_packet_index,
                     timestamp_seconds=float(timestamp_seconds),
                     packet_bytes=packet_bytes,
@@ -153,15 +172,18 @@ def _extract_packet_row(
     *,
     dataset_id: str,
     staged_file: Path,
+    source_discovery_index: int,
+    source_member_index: int,
     source_packet_index: int,
     timestamp_seconds: float,
     packet_bytes: bytes,
 ) -> dict[str, object]:
     import dpkt
 
-    timestamp = datetime.fromtimestamp(timestamp_seconds, UTC).replace(tzinfo=None)
+    timestamp_us = int(round(timestamp_seconds * 1_000_000))
+    timestamp = datetime.fromtimestamp(timestamp_us / 1_000_000, UTC)
     captured_len = len(packet_bytes)
-    wire_len = captured_len
+    wire_len = None
 
     src_ip: str | None = None
     dst_ip: str | None = None
@@ -205,11 +227,14 @@ def _extract_packet_row(
 
     return {
         "dataset_id": dataset_id,
+        "source_discovery_index": source_discovery_index,
+        "source_member_index": source_member_index,
         "source_file": str(staged_file),
         "source_packet_index": source_packet_index,
+        "timestamp_us": timestamp_us,
         "timestamp": timestamp,
         "captured_len": captured_len,
-        "wire_len": int(wire_len),
+        "wire_len": wire_len,
         "protocol": protocol,
         "src_ip": src_ip,
         "dst_ip": dst_ip,

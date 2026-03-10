@@ -84,11 +84,15 @@ def run_module(config: PipelineConfig) -> Path:
 
 def _stage_registry_row(row: dict[str, object], staged_dir: Path) -> list[dict[str, object]]:
     source_file = Path(str(row["raw_file"]))
+    discovery_index = int(row["discovery_index"])
     compression_type = CompressionType(str(row["compression_type"]))
 
     if compression_type == CompressionType.NONE:
         capture_format = CaptureFormat(str(row["capture_format_hint"]))
-        staged_file = staged_dir / source_file.name
+        staged_file = staged_dir / _build_staged_filename(
+            discovery_index=discovery_index,
+            basename=source_file.name,
+        )
         shutil.copy2(source_file, staged_file)
         return [
             _build_manifest_row(
@@ -98,11 +102,17 @@ def _stage_registry_row(row: dict[str, object], staged_dir: Path) -> list[dict[s
                 staging_action="copied",
                 capture_format=capture_format,
                 compression_type=compression_type,
+                source_discovery_index=discovery_index,
+                source_member_index=1,
+                archive_member_path=None,
             )
         ]
 
     if compression_type == CompressionType.GZIP:
-        staged_file = staged_dir / source_file.name.removesuffix(".gz")
+        staged_file = staged_dir / _build_staged_filename(
+            discovery_index=discovery_index,
+            basename=source_file.name.removesuffix(".gz"),
+        )
         with gzip.open(source_file, "rb") as source_handle, staged_file.open("wb") as target_handle:
             shutil.copyfileobj(source_handle, target_handle)
         capture_format = _infer_staged_capture_format(staged_file)
@@ -114,11 +124,17 @@ def _stage_registry_row(row: dict[str, object], staged_dir: Path) -> list[dict[s
                 staging_action="decompressed_gzip",
                 capture_format=capture_format,
                 compression_type=compression_type,
+                source_discovery_index=discovery_index,
+                source_member_index=1,
+                archive_member_path=None,
             )
         ]
 
     if compression_type == CompressionType.XZ:
-        staged_file = staged_dir / source_file.name.removesuffix(".xz")
+        staged_file = staged_dir / _build_staged_filename(
+            discovery_index=discovery_index,
+            basename=source_file.name.removesuffix(".xz"),
+        )
         with lzma.open(source_file, "rb") as source_handle, staged_file.open("wb") as target_handle:
             shutil.copyfileobj(source_handle, target_handle)
         capture_format = _infer_staged_capture_format(staged_file)
@@ -130,6 +146,9 @@ def _stage_registry_row(row: dict[str, object], staged_dir: Path) -> list[dict[s
                 staging_action="decompressed_xz",
                 capture_format=capture_format,
                 compression_type=compression_type,
+                source_discovery_index=discovery_index,
+                source_member_index=1,
+                archive_member_path=None,
             )
         ]
 
@@ -145,9 +164,12 @@ def _stage_registry_row(row: dict[str, object], staged_dir: Path) -> list[dict[s
             if not capture_members:
                 raise ValueError(f"No .pcap or .pcapng member found in ZIP archive: {source_file}")
 
-            for member in capture_members:
-                member_name = Path(member.filename).name
-                staged_file = staged_dir / f"{source_file.stem}__{member_name}"
+            for member_index, member in enumerate(capture_members, start=1):
+                staged_file = staged_dir / _build_staged_filename(
+                    discovery_index=discovery_index,
+                    basename=_sanitize_member_filename(member.filename),
+                    member_index=member_index,
+                )
                 with archive.open(member, "r") as source_handle, staged_file.open("wb") as target_handle:
                     shutil.copyfileobj(source_handle, target_handle)
                 capture_format = _infer_staged_capture_format(staged_file)
@@ -159,6 +181,9 @@ def _stage_registry_row(row: dict[str, object], staged_dir: Path) -> list[dict[s
                         staging_action=f"extracted_zip:{member.filename}",
                         capture_format=capture_format,
                         compression_type=compression_type,
+                        source_discovery_index=discovery_index,
+                        source_member_index=member_index,
+                        archive_member_path=member.filename,
                     )
                 )
         return manifest_rows
@@ -179,10 +204,16 @@ def _build_manifest_row(
     staging_action: str,
     capture_format: CaptureFormat,
     compression_type: CompressionType,
+    source_discovery_index: int,
+    source_member_index: int,
+    archive_member_path: str | None,
 ) -> dict[str, object]:
     return {
         "dataset_id": dataset_id,
+        "source_discovery_index": source_discovery_index,
+        "source_member_index": source_member_index,
         "source_file": str(source_file),
+        "archive_member_path": archive_member_path,
         "staged_file": str(staged_file),
         "staging_action": staging_action,
         "capture_format": capture_format.value,
@@ -192,6 +223,24 @@ def _build_manifest_row(
         "source_size_bytes": source_file.stat().st_size,
         "staged_size_bytes": staged_file.stat().st_size,
     }
+
+
+def _build_staged_filename(
+    *,
+    discovery_index: int,
+    basename: str,
+    member_index: int | None = None,
+) -> str:
+    safe_basename = _sanitize_member_filename(basename)
+    if member_index is None:
+        return f"{discovery_index:04d}__{safe_basename}"
+    return f"{discovery_index:04d}__{member_index:04d}__{safe_basename}"
+
+
+def _sanitize_member_filename(value: str) -> str:
+    parts = [part for part in Path(value).parts if part not in {"", ".", ".."}]
+    safe_name = "__".join(parts) if parts else Path(value).name
+    return safe_name.replace(":", "_")
 
 
 def _infer_staged_capture_format(path: Path) -> CaptureFormat:

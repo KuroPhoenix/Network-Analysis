@@ -19,7 +19,9 @@ This module is now implemented for the local MVP start. It supports direct `.pca
 - Staged capture files under `data/staged/{dataset_id}/`
 - `data/processed/{dataset_id}/ingest_manifest.parquet`
 - Manifest fields include:
+  - source discovery order and member order
   - source and staged file paths
+  - archive member path when applicable
   - staging action
   - capture format
   - compression wrapper
@@ -32,6 +34,7 @@ This module is now implemented for the local MVP start. It supports direct `.pca
 - Decompression must be explicit and reproducible.
 - Failures are surfaced clearly rather than skipped silently.
 - Uncompressed captures are copied into the staged area so downstream parsing never mutates raw inputs in place.
+- Staged filenames are prefixed with deterministic source-order metadata so downstream packet order does not depend on basename collisions.
 
 ## Assumptions and limitations
 
