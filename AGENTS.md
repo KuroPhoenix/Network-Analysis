@@ -41,7 +41,7 @@ Do not rush into Docker, Kubernetes, or cluster-specific changes while the local
 Unless the user explicitly overrides it:
 
 - `AGENTS.md` defines repo-wide operating rules, methodology constraints, and default working style.
-- `docs/pipeline-mvp.md` defines the MVP architecture, module responsibilities, and implementation contracts.
+- `docs/specs/pipeline-mvp.md` defines the MVP architecture, module responsibilities, and implementation contracts. `docs/pipeline-mvp.md` may remain as a compatibility pointer, but the canonical spec path is under `docs/specs/`.
 - `docs/modules/<module-name>/` contains module-local explanations, maintenance notes, and change history. If such file or directory does not exist, that indicates this module has not yet been implemented. Therefore, create the necessary folders and markdown files before writing the docs.
 
 If these documents appear to conflict, do not silently choose one interpretation. Surface the conflict explicitly and reconcile it before proceeding.
