@@ -165,6 +165,9 @@ runtime:
     run_manifest = json.loads((meta_dir / "run_manifest.json").read_text(encoding="utf-8"))
     stage_timings = json.loads((meta_dir / "stage_timings.json").read_text(encoding="utf-8"))
     run_log = (logs_dir / "run.log").read_text(encoding="utf-8")
+    cache_root = tmp_path / ".cache" / "network_analysis" / "minimal"
+    staged_cache_dir = cache_root / "staged" / "fixture_trace"
+    processed_cache_dir = cache_root / "processed" / "fixture_trace"
 
     assert resolved_dataset["dataset_id"] == "fixture_trace"
     assert len(resolved_dataset["capture_files"]) == 1
@@ -180,6 +183,12 @@ runtime:
     assert run_manifest["dataset_id"] == "fixture_trace"
     assert run_manifest["outputs"]["meta_dir"] == str(meta_dir)
     assert run_manifest["outputs"]["logs_dir"] == str(logs_dir)
+    assert run_manifest["cache"]["policy"] == "minimal"
+    assert run_manifest["cache"]["root"] == str(cache_root)
+    assert run_manifest["cache"]["staged_dir_exists"] is False
+    assert run_manifest["cache"]["processed_dir_exists"] is True
+    assert run_manifest["cache"]["sampled_packets_dir_exists"] is True
+    assert run_manifest["cache"]["sampled_flows_dir_exists"] is True
     assert set(stage_timings) == {
         "dataset_registry",
         "ingest",
@@ -188,9 +197,78 @@ runtime:
         "sampling",
         "metrics",
     }
+    assert not staged_cache_dir.exists()
+    assert processed_cache_dir.exists()
+    assert (processed_cache_dir / "packets.parquet").exists()
+    assert (processed_cache_dir / "baseline_flows.parquet").exists()
+    assert (processed_cache_dir / "sampled_packets").exists()
+    assert (processed_cache_dir / "sampled_flows").exists()
     assert "[active] [1/1] fixture_trace starting" in run_log
     assert "[dataset fixture_trace] [1/6] dataset_registry starting" in run_log
     assert "[dataset fixture_trace] [6/6] metrics completed" in run_log
+
+
+def test_active_cli_run_with_cache_policy_none_removes_dataset_cache(tmp_path: Path) -> None:
+    datasets_root = tmp_path / "datasets"
+    dataset_dir = datasets_root / "fixture_trace"
+    dataset_dir.mkdir(parents=True)
+    capture_path = dataset_dir / "fixture_trace.pcap"
+    _write_fixture_pcap(capture_path)
+
+    dataset_template_path = tmp_path / "dataset_template.yaml"
+    dataset_template_path.write_text(
+        """
+discovery:
+  dataset_glob: "*"
+  raw_glob: "*.pcap"
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    run_config_path = tmp_path / "run_conf.yaml"
+    run_config_path.write_text(
+        """
+input:
+  datasets_root: ./datasets
+
+output:
+  results_root: ./results
+
+sampling:
+  rates:
+    - 2
+  method: systematic
+
+runtime:
+  plotting_mode: off
+  cache_policy: none
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "--run-config",
+            str(run_config_path),
+            "--dataset-template",
+            str(dataset_template_path),
+        ]
+    )
+    assert exit_code == 0
+
+    meta_dir = tmp_path / "results" / "fixture_trace" / "meta"
+    run_manifest = json.loads((meta_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    cache_root = tmp_path / ".cache" / "network_analysis" / "none"
+
+    assert run_manifest["cache"]["policy"] == "none"
+    assert run_manifest["cache"]["staged_dir_exists"] is False
+    assert run_manifest["cache"]["processed_dir_exists"] is False
+    assert not (cache_root / "staged" / "fixture_trace").exists()
+    assert not (cache_root / "processed" / "fixture_trace").exists()
+    assert (
+        tmp_path / "results" / "fixture_trace" / "tables" / "fixture_trace_metric_summary.parquet"
+    ).exists()
 
 
 def _write_fixture_pcap(path: Path) -> None:

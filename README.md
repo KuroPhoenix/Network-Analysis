@@ -131,7 +131,7 @@ python scripts/run_pipeline.py --run-config configs/run_conf.yaml --datasets-roo
 python scripts/run_pipeline.py --run-config configs/run_conf.yaml --datasets-root datasets --plan
 ```
 
-The active entrypoint writes dataset-scoped metric outputs under `results/<dataset>/tables/` and runtime provenance under `results/<dataset>/meta/` and `results/<dataset>/logs/`.
+The active entrypoint writes dataset-scoped metric outputs under `results/<dataset>/tables/`, runtime provenance under `results/<dataset>/meta/` and `results/<dataset>/logs/`, and uses hidden cache roots under `.cache/network_analysis/<policy>/` for staged and processed intermediates.
 
 The older frozen-MVP config and batch commands still exist as compatibility surfaces while the v2 migration continues.
 

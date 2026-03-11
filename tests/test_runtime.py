@@ -54,7 +54,10 @@ runtime:
         tmp_path / "results" / "bras" / "tables"
     ).resolve()
     assert planned_runs[0].pipeline_config.output.staged_dir == (
-        tmp_path / "data" / "staged"
+        tmp_path / ".cache" / "network_analysis" / "minimal" / "staged"
+    ).resolve()
+    assert planned_runs[0].pipeline_config.output.processed_dir == (
+        tmp_path / ".cache" / "network_analysis" / "minimal" / "processed"
     ).resolve()
     assert planned_runs[0].pipeline_config.runtime.enable_plots is False
 

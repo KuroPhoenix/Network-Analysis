@@ -113,7 +113,10 @@ Key fields:
 Important behaviour:
 
 - the active entrypoint still adapts into the current executable pipeline modules
-- `cache_policy` is now explicit in config, but intermediate retention still follows the legacy storage model until the cache slice lands
+- `cache_policy` now controls hidden active cache roots under `.cache/network_analysis/<policy>/`
+- `none` removes the dataset-scoped staged and processed cache after a successful active run
+- `minimal` removes only the staged cache after a successful active run and keeps processed intermediates
+- `debug` keeps both staged and processed cache artefacts for inspection
 - `results_root` is already dataset-scoped for metric tables
 - the current plotting module still writes below a dataset-specific leaf inside each dataset plot root
 - the active entrypoint now persists `meta/` and `logs/` artefacts per dataset

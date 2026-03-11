@@ -42,7 +42,10 @@ The module does not write packet, flow, metric, or plot artefacts directly. Down
   - packet-vs-byte labelling
 - The runtime currently uses a compatibility adapter:
   - `results/<dataset>/tables` and `results/<dataset>/plots` are passed through to the current modules
-  - `data/staged` and `data/processed` are still derived as compatibility roots until the cache-policy slice lands
+  - active cache roots are resolved under `.cache/network_analysis/<policy>/...`
+  - `none` removes dataset-scoped staged and processed cache directories after a successful run
+  - `minimal` removes only the staged cache after a successful run and keeps processed intermediates
+  - `debug` keeps both staged and processed cache artefacts for inspection
 - Because plotting still uses the legacy artifact helper, the final SVG path currently includes one extra dataset-id leaf under the dataset plot root.
 - Plot execution is still controlled by the current boolean module gate. The runtime maps the active `plotting_mode` string onto the existing `runtime.enable_plots` flag without changing plotting semantics.
 - The runtime now persists resolved dataset snapshots, run-config snapshots, a run manifest, stage timings, and a plain-text run log for the active entrypoint.
@@ -58,5 +61,6 @@ The module does not write packet, flow, metric, or plot artefacts directly. Down
 ## Assumptions and limitations
 
 - The module is still a bridge layer. It preserves current runnable behaviour while the rest of the repo converges on the v2 architecture.
-- Cache policy is parsed but not yet enforced in runtime execution.
+- Cache policy is currently enforced only for the active entrypoint. Legacy compatibility paths still use the older persistent `data/` trees.
+- Failed runs keep their cache directories for inspection; the cleanup rules above apply only after successful runs.
 - Legacy CLI compatibility paths still exist alongside this module and should be retired in a later slice.

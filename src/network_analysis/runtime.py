@@ -6,6 +6,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import shutil
 import sys
 from time import perf_counter
 from typing import Callable
@@ -15,6 +16,7 @@ import yaml
 from .pipeline.driver import ModuleRuntimeEvent, run_pipeline
 from .shared.artifacts import build_artifact_paths
 from .shared.config import DatasetConfig, OutputConfig, PipelineConfig, RuntimeConfig
+from .shared.types import CachePolicy
 from .shared.v2_config import DatasetTemplateConfig, ResolvedDatasetRun, RunConfig, resolve_dataset_runs
 
 
@@ -23,7 +25,18 @@ class PlannedDatasetRun:
     """One dataset-scoped pipeline run planned from the active config surface."""
 
     resolved_run: ResolvedDatasetRun
+    cache_layout: RuntimeCacheLayout
     pipeline_config: PipelineConfig
+
+
+@dataclass(frozen=True)
+class RuntimeCacheLayout:
+    """Resolved cache roots for one active-architecture run."""
+
+    policy: CachePolicy
+    cache_root: Path
+    staged_root: Path
+    processed_root: Path
 
 
 def plan_active_runs(
@@ -33,10 +46,12 @@ def plan_active_runs(
     """Resolve dataset-root execution into legacy-compatible pipeline configs."""
 
     resolved_runs = resolve_dataset_runs(run_config, dataset_template)
+    cache_layout = _resolve_cache_layout(run_config)
     return tuple(
         PlannedDatasetRun(
             resolved_run=resolved_run,
-            pipeline_config=_to_pipeline_config(run_config, resolved_run),
+            cache_layout=cache_layout,
+            pipeline_config=_to_pipeline_config(run_config, resolved_run, cache_layout),
         )
         for resolved_run in resolved_runs
     )
@@ -61,6 +76,7 @@ def render_active_plan(
         f"Byte basis: {run_config.methodology.byte_basis}",
         f"Plotting mode: {run_config.runtime.plotting_mode}",
         f"Cache policy: {run_config.runtime.cache_policy}",
+        f"Cache root: {_resolve_cache_layout(run_config).cache_root}",
         "",
     ]
 
@@ -147,6 +163,7 @@ def run_active_runs(
             f"[active] [{run_index}/{len(planned_runs)}] "
             f"{dataset_id} completed in {_format_elapsed(dataset_elapsed)}",
         )
+        _apply_cache_retention(planned_run)
         _write_runtime_manifest(
             planned_run,
             run_id=run_id,
@@ -171,8 +188,11 @@ def override_datasets_root(run_config: RunConfig, datasets_root: Path) -> RunCon
     )
 
 
-def _to_pipeline_config(run_config: RunConfig, resolved_run: ResolvedDatasetRun) -> PipelineConfig:
-    workspace_root = run_config.paths.results_root.parent
+def _to_pipeline_config(
+    run_config: RunConfig,
+    resolved_run: ResolvedDatasetRun,
+    cache_layout: RuntimeCacheLayout,
+) -> PipelineConfig:
     plotting_mode = run_config.runtime.plotting_mode.strip().lower()
     enable_plots = plotting_mode not in {"none", "off", "false", "disabled"}
 
@@ -184,8 +204,8 @@ def _to_pipeline_config(run_config: RunConfig, resolved_run: ResolvedDatasetRun)
             raw_glob=resolved_run.raw_glob,
         ),
         output=OutputConfig(
-            staged_dir=workspace_root / "data" / "staged",
-            processed_dir=workspace_root / "data" / "processed",
+            staged_dir=cache_layout.staged_root,
+            processed_dir=cache_layout.processed_root,
             results_tables_dir=resolved_run.tables_dir,
             results_plots_dir=resolved_run.plots_dir,
         ),
@@ -212,6 +232,21 @@ def _format_elapsed(seconds: float) -> str:
 
     hours, remaining_minutes = divmod(int(minutes), 60)
     return f"{hours}h {remaining_minutes:02d}m {remaining_seconds:05.2f}s"
+
+
+def _resolve_cache_layout(run_config: RunConfig) -> RuntimeCacheLayout:
+    cache_root = (
+        run_config.paths.results_root.parent
+        / ".cache"
+        / "network_analysis"
+        / run_config.runtime.cache_policy.value
+    )
+    return RuntimeCacheLayout(
+        policy=run_config.runtime.cache_policy,
+        cache_root=cache_root,
+        staged_root=cache_root / "staged",
+        processed_root=cache_root / "processed",
+    )
 
 
 def _prepare_runtime_artifacts(planned_run: PlannedDatasetRun, *, run_config: RunConfig) -> None:
@@ -257,6 +292,17 @@ def _prepare_runtime_artifacts(planned_run: PlannedDatasetRun, *, run_config: Ru
         yaml.safe_dump(run_config_snapshot, sort_keys=False),
         encoding="utf-8",
     )
+
+
+def _apply_cache_retention(planned_run: PlannedDatasetRun) -> None:
+    artifact_paths = build_artifact_paths(planned_run.pipeline_config)
+
+    if planned_run.cache_layout.policy == CachePolicy.DEBUG:
+        return
+
+    _remove_tree_if_present(artifact_paths.staged_dir)
+    if planned_run.cache_layout.policy == CachePolicy.NONE:
+        _remove_tree_if_present(artifact_paths.processed_dir)
 
 
 def _build_runtime_observer(
@@ -317,12 +363,27 @@ def _write_runtime_manifest(
             "metric_summary": str(artifact_paths.metric_summary),
             "flow_metrics": str(artifact_paths.flow_metrics),
         },
+        "cache": {
+            "policy": planned_run.cache_layout.policy.value,
+            "root": str(planned_run.cache_layout.cache_root),
+            "staged_dir": str(artifact_paths.staged_dir),
+            "processed_dir": str(artifact_paths.processed_dir),
+            "staged_dir_exists": artifact_paths.staged_dir.exists(),
+            "processed_dir_exists": artifact_paths.processed_dir.exists(),
+            "sampled_packets_dir_exists": artifact_paths.sampled_packets_dir.exists(),
+            "sampled_flows_dir_exists": artifact_paths.sampled_flows_dir.exists(),
+        },
         "error_message": error_message,
     }
     (planned_run.resolved_run.meta_dir / "run_manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def _remove_tree_if_present(path: Path) -> None:
+    if path.exists():
+        shutil.rmtree(path)
 
 
 def _append_log(log_path: Path, message: str) -> None:
