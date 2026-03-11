@@ -8,7 +8,7 @@ import dpkt
 import polars as pl
 import yaml
 from network_analysis.cli import main
-from network_analysis.pipeline.driver import get_module_catalog
+from network_analysis.driver import get_module_catalog
 
 
 def test_module_catalog_uses_named_modules() -> None:

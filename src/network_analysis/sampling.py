@@ -3,12 +3,12 @@
 from pathlib import Path
 import random
 
+from .artifacts import build_artifact_paths
 from .base import ModuleContract
+from .config import DatasetRunConfig
+from .constants import PREFERRED_TABULAR_FORMAT
 from .flow_construction import _prepare_eligible_packets, _reconstruct_baseline_flows
-from ..shared.artifacts import build_artifact_paths
-from ..shared.constants import PREFERRED_TABULAR_FORMAT
-from ..shared.config import PipelineConfig
-from ..shared.types import ArtifactContract, ArtifactKind, ModuleName, SamplingMethod
+from .types import ArtifactContract, ArtifactKind, ModuleName, SamplingMethod
 
 MODULE_CONTRACT = ModuleContract(
     name=ModuleName.SAMPLING,
@@ -52,7 +52,7 @@ def describe_module() -> ModuleContract:
     return MODULE_CONTRACT
 
 
-def run_module(config: PipelineConfig) -> tuple[Path, Path, Path]:
+def run_module(config: DatasetRunConfig) -> tuple[Path, Path, Path]:
     """Generate sampled packet and sampled flow artefacts for each configured rate."""
 
     import polars as pl
@@ -108,7 +108,7 @@ def run_module(config: PipelineConfig) -> tuple[Path, Path, Path]:
     return artifact_paths.sampled_packets_dir, artifact_paths.sampled_flows_dir, artifact_paths.sampling_manifest
 
 
-def _sample_packets(packet_frame, config: PipelineConfig, rate: int):
+def _sample_packets(packet_frame, config: DatasetRunConfig, rate: int):
     import polars as pl
 
     if rate < 1:
@@ -156,7 +156,7 @@ def _sample_packets(packet_frame, config: PipelineConfig, rate: int):
     )
 
 
-def _reconstruct_sampled_flows(sampled_packet_frame, config: PipelineConfig, rate: int):
+def _reconstruct_sampled_flows(sampled_packet_frame, config: DatasetRunConfig, rate: int):
     import polars as pl
 
     if sampled_packet_frame.is_empty():
@@ -224,12 +224,12 @@ def _reconstruct_sampled_flows(sampled_packet_frame, config: PipelineConfig, rat
     )
 
 
-def _resolve_sampled_packets_path(config: PipelineConfig, sampled_packets_dir: Path, rate: int) -> Path:
+def _resolve_sampled_packets_path(config: DatasetRunConfig, sampled_packets_dir: Path, rate: int) -> Path:
     timeout_seconds = config.methodology.inactivity_timeout_seconds
     return sampled_packets_dir / f"{config.dataset.dataset_id}_{timeout_seconds}s_{rate}x_sampled_packets.parquet"
 
 
-def _resolve_sampled_flows_path(config: PipelineConfig, sampled_flows_dir: Path, rate: int) -> Path:
+def _resolve_sampled_flows_path(config: DatasetRunConfig, sampled_flows_dir: Path, rate: int) -> Path:
     timeout_seconds = config.methodology.inactivity_timeout_seconds
     return sampled_flows_dir / f"{config.dataset.dataset_id}_{timeout_seconds}s_{rate}x_sampled_flows.parquet"
 

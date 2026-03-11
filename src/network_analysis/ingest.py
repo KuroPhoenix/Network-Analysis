@@ -7,11 +7,11 @@ from pathlib import Path
 import shutil
 import zipfile
 
+from .artifacts import build_artifact_paths
 from .base import ModuleContract
-from ..shared.artifacts import build_artifact_paths
-from ..shared.constants import PREFERRED_TABULAR_FORMAT
-from ..shared.config import PipelineConfig
-from ..shared.types import (
+from .config import DatasetRunConfig
+from .constants import PREFERRED_TABULAR_FORMAT
+from .types import (
     ArtifactContract,
     ArtifactKind,
     CaptureFormat,
@@ -52,7 +52,7 @@ def describe_module() -> ModuleContract:
     return MODULE_CONTRACT
 
 
-def run_module(config: PipelineConfig) -> Path:
+def run_module(config: DatasetRunConfig) -> Path:
     """Stage immutable packet-capture files for parsing."""
 
     import polars as pl

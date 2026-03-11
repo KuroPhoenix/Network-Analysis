@@ -130,15 +130,14 @@ The following remain out of scope unless explicitly requested:
 
 ## Current implementation gaps vs target architecture
 
-The current repository is directionally aligned with this active architecture, but it has not fully converged yet.
+The current refactor branch is structurally aligned with this active architecture:
 
-Known gaps to treat as active refactor targets:
+- the public entry surface is the dataset-root runtime defined here;
+- the executable per-dataset config is resolved directly from `dataset_template.yaml` and `run_conf.yaml`;
+- plotting selection follows `runtime.plotting_mode` rather than a separate boolean bridge flag;
+- the source tree now uses the flatter root-level package layout described below.
 
-- the public entry surface now matches the active architecture, but module execution still passes through an internal `PipelineConfig` bridge and a boolean plotting gate that should eventually be flattened into a more native v2 runtime model;
-- the Python package layout still uses `modules/`, `pipeline/`, and `shared/` boundaries rather than the flatter target layout shown in this document.
-
-These gaps are implementation gaps, not methodology gaps.
-Until they are closed, preserve the current validated behaviour while moving the codebase toward the target architecture incrementally.
+Future work should therefore treat this document as the maintained current-state architecture, not as a still-pending structural migration plan.
 
 ## Input model
 

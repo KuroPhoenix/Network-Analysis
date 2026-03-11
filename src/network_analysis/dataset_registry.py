@@ -2,11 +2,11 @@
 
 from pathlib import Path
 
+from .artifacts import build_artifact_paths
 from .base import ModuleContract
-from ..shared.artifacts import build_artifact_paths
-from ..shared.constants import PREFERRED_TABULAR_FORMAT
-from ..shared.config import PipelineConfig
-from ..shared.types import ArtifactContract, CaptureFormat, CompressionType, ModuleName
+from .config import DatasetRunConfig, infer_capture_details
+from .constants import PREFERRED_TABULAR_FORMAT
+from .types import ArtifactContract, CaptureFormat, CompressionType, ModuleName
 
 MODULE_CONTRACT = ModuleContract(
     name=ModuleName.DATASET_REGISTRY,
@@ -35,7 +35,7 @@ def describe_module() -> ModuleContract:
     return MODULE_CONTRACT
 
 
-def run_module(config: PipelineConfig) -> Path:
+def run_module(config: DatasetRunConfig) -> Path:
     """Discover raw files and write the dataset registry manifest."""
 
     import polars as pl
@@ -67,7 +67,7 @@ def run_module(config: PipelineConfig) -> Path:
 
 
 def discover_raw_files(
-    config: PipelineConfig,
+    config: DatasetRunConfig,
 ) -> list[tuple[Path, CaptureFormat | None, CompressionType]]:
     """Discover and validate raw capture files for the configured dataset."""
 
@@ -84,34 +84,3 @@ def discover_raw_files(
         )
 
     return [(path, *infer_capture_details(path)) for path in raw_files]
-
-
-def infer_capture_details(path: Path) -> tuple[CaptureFormat | None, CompressionType]:
-    suffixes = [suffix.lower() for suffix in path.suffixes]
-    if not suffixes:
-        raise ValueError(f"Unsupported raw file without a capture or archive suffix: {path}")
-
-    if suffixes[-1] == ".pcap":
-        return CaptureFormat.PCAP, CompressionType.NONE
-    if suffixes[-1] == ".pcapng":
-        return CaptureFormat.PCAPNG, CompressionType.NONE
-    if suffixes[-1] == ".gz":
-        return _capture_from_base_suffixes(path, suffixes[:-1]), CompressionType.GZIP
-    if suffixes[-1] == ".xz":
-        return _capture_from_base_suffixes(path, suffixes[:-1]), CompressionType.XZ
-    if suffixes[-1] == ".zip":
-        return None, CompressionType.ZIP
-    if suffixes[-1] == ".rar":
-        return None, CompressionType.RAR
-
-    raise ValueError(f"Unsupported raw file type for dataset registry: {path}")
-
-
-def _capture_from_base_suffixes(path: Path, base_suffixes: list[str]) -> CaptureFormat:
-    if not base_suffixes:
-        raise ValueError(f"Compressed file is missing a capture suffix before the wrapper: {path}")
-    if base_suffixes[-1] == ".pcap":
-        return CaptureFormat.PCAP
-    if base_suffixes[-1] == ".pcapng":
-        return CaptureFormat.PCAPNG
-    raise ValueError(f"Compressed file does not resolve to a supported capture format: {path}")

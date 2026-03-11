@@ -4,12 +4,12 @@ from pathlib import Path
 
 import dpkt
 
-from network_analysis.shared.types import CachePolicy, SizeBasis
-from network_analysis.shared.v2_config import (
+from network_analysis.config import (
     load_dataset_template,
     load_run_config,
     resolve_dataset_runs,
 )
+from network_analysis.types import CachePolicy, SizeBasis
 
 
 def test_load_run_config_applies_defaults_and_preserves_methodology(tmp_path: Path) -> None:

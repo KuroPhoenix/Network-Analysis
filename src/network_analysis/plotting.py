@@ -5,10 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from .artifacts import build_artifact_paths
 from .base import ModuleContract
-from ..shared.artifacts import build_artifact_paths
-from ..shared.config import PipelineConfig
-from ..shared.types import ArtifactContract, ArtifactKind, ModuleName
+from .config import DatasetRunConfig
+from .types import ArtifactContract, ArtifactKind, ModuleName
 
 MODULE_CONTRACT = ModuleContract(
     name=ModuleName.PLOTTING,
@@ -185,7 +185,7 @@ def describe_module() -> ModuleContract:
     return MODULE_CONTRACT
 
 
-def run_module(config: PipelineConfig) -> Path:
+def run_module(config: DatasetRunConfig) -> Path:
     """Render lightweight static plots from metric tables."""
 
     import polars as pl
@@ -384,7 +384,7 @@ def _select_flow_metric_rows(flow_metrics, *, size_basis: str | None, packets_pr
 
 def _build_summary_rows(
     *,
-    config: PipelineConfig,
+    config: DatasetRunConfig,
     spec: RatePlotSpec,
     rows: list[dict[str, object]],
     source_metric: str,

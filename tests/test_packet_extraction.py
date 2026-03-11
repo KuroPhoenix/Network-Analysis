@@ -8,19 +8,19 @@ import socket
 import dpkt
 import polars as pl
 
-from network_analysis.modules import dataset_registry, ingest, packet_extraction
-from network_analysis.shared.config import load_pipeline_config
+from network_analysis import dataset_registry, ingest, packet_extraction
+
+from tests.support import build_dataset_run_config
 
 
 def test_packet_extraction_slice_preserves_raw_input_and_packet_order(tmp_path: Path) -> None:
-    raw_dir = tmp_path / "raw"
-    raw_dir.mkdir()
+    raw_dir = tmp_path / "datasets" / "fixture_trace"
+    raw_dir.mkdir(parents=True)
     capture_path = raw_dir / "fixture_trace.pcap"
     _write_fixture_pcap(capture_path)
     original_bytes = capture_path.read_bytes()
 
-    config_path = _write_config(tmp_path, raw_dir)
-    config = load_pipeline_config(config_path)
+    config = build_dataset_run_config(tmp_path, raw_glob="*.pcap", plotting_mode="off")
 
     registry_path = dataset_registry.run_module(config)
     ingest_manifest_path = ingest.run_module(config)
@@ -78,8 +78,8 @@ def test_packet_extraction_slice_preserves_raw_input_and_packet_order(tmp_path: 
 
 
 def test_packet_extraction_uses_registry_order_and_collision_safe_staging(tmp_path: Path) -> None:
-    raw_dir = tmp_path / "raw"
-    raw_dir.mkdir()
+    raw_dir = tmp_path / "datasets" / "fixture_trace"
+    raw_dir.mkdir(parents=True)
 
     direct_capture = raw_dir / "fixture_trace.pcap"
     gzip_capture = raw_dir / "fixture_trace.pcap.gz"
@@ -98,8 +98,7 @@ def test_packet_extraction_uses_registry_order_and_collision_safe_staging(tmp_pa
     )
     _gzip_file(gzip_source, gzip_capture)
 
-    config_path = _write_config(tmp_path, raw_dir, raw_glob="*.pcap*")
-    config = load_pipeline_config(config_path)
+    config = build_dataset_run_config(tmp_path, raw_glob="*.pcap*", plotting_mode="off")
 
     dataset_registry.run_module(config)
     ingest_manifest_path = ingest.run_module(config)
@@ -203,44 +202,3 @@ def _gzip_file(source: Path, target: Path) -> None:
 
     with source.open("rb") as source_handle, gzip.open(target, "wb") as target_handle:
         shutil.copyfileobj(source_handle, target_handle)
-
-
-def _write_config(tmp_path: Path, raw_dir: Path, *, raw_glob: str = "*.pcap") -> Path:
-    config_path = tmp_path / "pipeline.yaml"
-    config_path.write_text(
-        f"""
-dataset:
-  dataset_id: fixture_trace
-  input_dir: {raw_dir}
-  raw_glob: "{raw_glob}"
-
-output:
-  staged_dir: {tmp_path / "staged"}
-  processed_dir: {tmp_path / "processed"}
-  results_tables_dir: {tmp_path / "tables"}
-  results_plots_dir: {tmp_path / "plots"}
-
-methodology:
-  flow_key_fields:
-    - src_ip
-    - dst_ip
-    - src_port
-    - dst_port
-    - protocol
-  inactivity_timeout_seconds: 15
-  size_basis: packets
-  byte_basis: captured_len
-
-sampling:
-  rates:
-    - 2
-  method: systematic
-
-runtime:
-  workers: 1
-  enable_plots: false
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
-    return config_path

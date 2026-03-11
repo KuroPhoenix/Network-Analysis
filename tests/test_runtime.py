@@ -4,8 +4,8 @@ from pathlib import Path
 
 import dpkt
 
+from network_analysis.config import load_dataset_template, load_run_config
 from network_analysis.runtime import plan_active_runs
-from network_analysis.shared.v2_config import load_dataset_template, load_run_config
 
 
 def test_plan_active_runs_adapts_dataset_scoped_results(tmp_path: Path) -> None:
@@ -50,16 +50,16 @@ runtime:
     )
 
     assert [planned_run.resolved_run.dataset_id for planned_run in planned_runs] == ["bras", "onu"]
-    assert planned_runs[0].pipeline_config.output.results_tables_dir == (
+    assert planned_runs[0].dataset_run_config.output.results_tables_dir == (
         tmp_path / "results" / "bras" / "tables"
     ).resolve()
-    assert planned_runs[0].pipeline_config.output.staged_dir == (
+    assert planned_runs[0].dataset_run_config.output.staged_dir == (
         tmp_path / ".cache" / "network_analysis" / "minimal" / "staged"
     ).resolve()
-    assert planned_runs[0].pipeline_config.output.processed_dir == (
+    assert planned_runs[0].dataset_run_config.output.processed_dir == (
         tmp_path / ".cache" / "network_analysis" / "minimal" / "processed"
     ).resolve()
-    assert planned_runs[0].pipeline_config.runtime.enable_plots is False
+    assert planned_runs[0].dataset_run_config.runtime.plotting_mode == "off"
 
 
 def _write_empty_pcap_capture(path: Path) -> None:

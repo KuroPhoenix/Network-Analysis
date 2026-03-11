@@ -6,7 +6,7 @@ The `driver` module is the thin orchestration layer for the MVP. It composes nam
 
 ## Inputs
 
-- A validated `PipelineConfig` object from `shared.config`
+- A validated `DatasetRunConfig` object from `config`
 - Module contracts exported by:
   - `dataset_registry`
   - `ingest`
@@ -37,15 +37,15 @@ The driver does not persist pipeline artefacts or run manifests directly. The un
   - `sampling`
   - `metrics`
   - optional `plotting`
-- `runtime.enable_plots` is the only module-selection gate in the current MVP. When it is `false`, the plotting module is omitted from both the plan and the run sequence.
+- `runtime.plotting_mode` is the current module-selection gate for plotting. When plotting is `off`, the plotting module is omitted from both the plan and the run sequence.
 - `run_pipeline(..., dry_run=True)` returns the resolved plan without executing any module.
 - `run_pipeline(..., observer=...)` emits start, completion, and failure timing events without moving logging or persistence policy into the driver.
-- The driver only composes module calls. Timeout, flow key, sampling semantics, size basis, and matching logic all remain inside shared config and module implementations.
+- The driver only composes module calls. Timeout, flow key, sampling semantics, size basis, and matching logic all remain inside `config.py` and the module implementations.
 
 ## Upstream and downstream contracts
 
 - Upstream contract:
-  - `shared.config` must supply a validated `PipelineConfig`.
+  - `config` must supply a validated `DatasetRunConfig`.
   - Each module listed in `PIPELINE_MODULES` must export `describe_module()` and `run_module(config)`.
 - Downstream contract:
   - CLI code can treat the driver as the single composition boundary for the local MVP.

@@ -1,5 +1,12 @@
 # Driver Module Changelog
 
+## 2026-03-12
+
+1. Purpose of modification: align the driver with the final active root-level architecture.
+2. What changed: switched the driver to consume `DatasetRunConfig` from `config.py`, flattened its imports to the root package layout, and made plotting selection follow `runtime.plotting_mode`.
+3. Impact on other pipeline modules: runtime and CLI now compose the driver through the active package layout without changing stage order or methodology.
+4. Required maintenance or follow-up updates: keep plan rendering and observer events aligned if runtime controls or stage ordering evolve.
+
 ## 2026-03-11
 
 1. Purpose of modification: expose a thin runtime-observer hook without moving logging or manifest policy into the driver.

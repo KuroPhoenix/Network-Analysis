@@ -3,11 +3,11 @@
 from datetime import datetime
 from pathlib import Path
 
+from .artifacts import build_artifact_paths
 from .base import ModuleContract
-from ..shared.artifacts import build_artifact_paths
-from ..shared.constants import PREFERRED_TABULAR_FORMAT
-from ..shared.config import PipelineConfig
-from ..shared.types import ArtifactContract, ByteBasis, ModuleName
+from .config import DatasetRunConfig
+from .constants import PREFERRED_TABULAR_FORMAT
+from .types import ArtifactContract, ByteBasis, ModuleName
 
 MODULE_CONTRACT = ModuleContract(
     name=ModuleName.FLOW_CONSTRUCTION,
@@ -36,7 +36,7 @@ def describe_module() -> ModuleContract:
     return MODULE_CONTRACT
 
 
-def run_module(config: PipelineConfig) -> Path:
+def run_module(config: DatasetRunConfig) -> Path:
     """Reconstruct baseline flows from the canonical packet table."""
 
     import polars as pl
@@ -89,7 +89,7 @@ def run_module(config: PipelineConfig) -> Path:
     return artifact_paths.baseline_flows
 
 
-def _prepare_eligible_packets(packet_frame, config: PipelineConfig):
+def _prepare_eligible_packets(packet_frame, config: DatasetRunConfig):
     import polars as pl
 
     required_fields = (
@@ -134,7 +134,7 @@ def _prepare_eligible_packets(packet_frame, config: PipelineConfig):
     return eligible_packets
 
 
-def _reconstruct_baseline_flows(packet_frame, config: PipelineConfig) -> list[dict[str, object]]:
+def _reconstruct_baseline_flows(packet_frame, config: DatasetRunConfig) -> list[dict[str, object]]:
     flow_key_fields = config.methodology.flow_key_fields
     timeout_seconds = float(config.methodology.inactivity_timeout_seconds)
     byte_field = _resolve_byte_field(config.methodology.byte_basis)
@@ -220,7 +220,7 @@ def _start_flow_state(
     }
 
 
-def _finalize_flow_row(state: dict[str, object], config: PipelineConfig) -> dict[str, object]:
+def _finalize_flow_row(state: dict[str, object], config: DatasetRunConfig) -> dict[str, object]:
     start_ts = state["start_ts"]
     end_ts = state["end_ts"]
     duration_seconds = (end_ts - start_ts).total_seconds()

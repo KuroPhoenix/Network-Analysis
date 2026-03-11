@@ -13,11 +13,17 @@ from typing import Callable
 
 import yaml
 
-from .pipeline.driver import ModuleRuntimeEvent, run_pipeline
-from .shared.artifacts import build_artifact_paths
-from .shared.config import DatasetConfig, OutputConfig, PipelineConfig, RuntimeConfig
-from .shared.types import CachePolicy
-from .shared.v2_config import DatasetTemplateConfig, ResolvedDatasetRun, RunConfig, resolve_dataset_runs
+from .artifacts import build_artifact_paths
+from .config import (
+    DatasetRunConfig,
+    DatasetTemplateConfig,
+    ResolvedDatasetRun,
+    RunConfig,
+    build_dataset_run_config,
+    resolve_dataset_runs,
+)
+from .driver import ModuleRuntimeEvent, run_pipeline
+from .types import CachePolicy
 
 
 @dataclass(frozen=True)
@@ -26,7 +32,7 @@ class PlannedDatasetRun:
 
     resolved_run: ResolvedDatasetRun
     cache_layout: RuntimeCacheLayout
-    pipeline_config: PipelineConfig
+    dataset_run_config: DatasetRunConfig
 
 
 @dataclass(frozen=True)
@@ -51,7 +57,12 @@ def plan_active_runs(
         PlannedDatasetRun(
             resolved_run=resolved_run,
             cache_layout=cache_layout,
-            pipeline_config=_to_pipeline_config(run_config, resolved_run, cache_layout),
+            dataset_run_config=build_dataset_run_config(
+                run_config,
+                resolved_run,
+                staged_root=cache_layout.staged_root,
+                processed_root=cache_layout.processed_root,
+            ),
         )
         for resolved_run in resolved_runs
     )
@@ -81,7 +92,7 @@ def render_active_plan(
     ]
 
     for planned_run in plan_active_runs(run_config, dataset_template):
-        artifact_paths = build_artifact_paths(planned_run.pipeline_config)
+        artifact_paths = build_artifact_paths(planned_run.dataset_run_config)
         lines.extend(
             (
                 f"[{planned_run.resolved_run.dataset_id}] {len(planned_run.resolved_run.capture_files)} capture files",
@@ -130,7 +141,7 @@ def run_active_runs(
         )
         observer = _build_runtime_observer(log_path=log_path, stage_timings=stage_timings)
         try:
-            run_pipeline(planned_run.pipeline_config, dry_run=False, observer=observer)
+            run_pipeline(planned_run.dataset_run_config, dry_run=False, observer=observer)
         except BaseException as exc:
             dataset_elapsed = perf_counter() - dataset_start
             _emit_runtime_event(
@@ -185,36 +196,6 @@ def override_datasets_root(run_config: RunConfig, datasets_root: Path) -> RunCon
     return replace(
         run_config,
         paths=replace(run_config.paths, datasets_root=datasets_root.expanduser().resolve()),
-    )
-
-
-def _to_pipeline_config(
-    run_config: RunConfig,
-    resolved_run: ResolvedDatasetRun,
-    cache_layout: RuntimeCacheLayout,
-) -> PipelineConfig:
-    plotting_mode = run_config.runtime.plotting_mode.strip().lower()
-    enable_plots = plotting_mode not in {"none", "off", "false", "disabled"}
-
-    return PipelineConfig(
-        config_path=run_config.config_path,
-        dataset=DatasetConfig(
-            dataset_id=resolved_run.dataset_id,
-            input_dir=resolved_run.dataset_dir,
-            raw_glob=resolved_run.raw_glob,
-        ),
-        output=OutputConfig(
-            staged_dir=cache_layout.staged_root,
-            processed_dir=cache_layout.processed_root,
-            results_tables_dir=resolved_run.tables_dir,
-            results_plots_dir=resolved_run.plots_dir,
-        ),
-        methodology=run_config.methodology,
-        sampling=run_config.sampling,
-        runtime=RuntimeConfig(
-            workers=run_config.runtime.workers,
-            enable_plots=enable_plots,
-        ),
     )
 
 
@@ -295,7 +276,7 @@ def _prepare_runtime_artifacts(planned_run: PlannedDatasetRun, *, run_config: Ru
 
 
 def _apply_cache_retention(planned_run: PlannedDatasetRun) -> None:
-    artifact_paths = build_artifact_paths(planned_run.pipeline_config)
+    artifact_paths = build_artifact_paths(planned_run.dataset_run_config)
 
     if planned_run.cache_layout.policy == CachePolicy.DEBUG:
         return
@@ -340,7 +321,7 @@ def _write_runtime_manifest(
     stage_timings: dict[str, float],
     error_message: str | None,
 ) -> None:
-    artifact_paths = build_artifact_paths(planned_run.pipeline_config)
+    artifact_paths = build_artifact_paths(planned_run.dataset_run_config)
     stage_timings_path = planned_run.resolved_run.meta_dir / "stage_timings.json"
     stage_timings_path.write_text(
         json.dumps(stage_timings, indent=2, sort_keys=True) + "\n",

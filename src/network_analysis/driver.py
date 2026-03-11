@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from time import perf_counter
 from typing import Callable
 
-from ..modules import (
+from . import (
     dataset_registry,
     flow_construction,
     ingest,
@@ -13,8 +13,8 @@ from ..modules import (
     plotting,
     sampling,
 )
-from ..modules.base import ModuleContract
-from ..shared.config import PipelineConfig
+from .base import ModuleContract
+from .config import DatasetRunConfig
 
 PIPELINE_MODULES = (
     dataset_registry,
@@ -53,7 +53,7 @@ def get_module_catalog() -> tuple[ModuleContract, ...]:
     return tuple(module.describe_module() for module in PIPELINE_MODULES)
 
 
-def plan_pipeline(config: PipelineConfig) -> tuple[PlannedModule, ...]:
+def plan_pipeline(config: DatasetRunConfig) -> tuple[PlannedModule, ...]:
     """Build a dry-run execution plan from the configured module catalog."""
 
     return tuple(
@@ -62,7 +62,7 @@ def plan_pipeline(config: PipelineConfig) -> tuple[PlannedModule, ...]:
     )
 
 
-def render_pipeline_plan(config: PipelineConfig) -> str:
+def render_pipeline_plan(config: DatasetRunConfig) -> str:
     """Render the pipeline plan for CLI output."""
 
     lines = [
@@ -73,7 +73,7 @@ def render_pipeline_plan(config: PipelineConfig) -> str:
         f"Inactivity timeout: {config.methodology.inactivity_timeout_seconds}s",
         f"Size basis: {config.methodology.size_basis}",
         f"Byte basis: {config.methodology.byte_basis}",
-        f"Plots enabled: {config.runtime.enable_plots}",
+        f"Plotting mode: {config.runtime.plotting_mode}",
         "",
     ]
     for module in plan_pipeline(config):
@@ -84,7 +84,7 @@ def render_pipeline_plan(config: PipelineConfig) -> str:
 
 
 def run_pipeline(
-    config: PipelineConfig,
+    config: DatasetRunConfig,
     *,
     dry_run: bool = False,
     observer: Callable[[ModuleRuntimeEvent], None] | None = None,
@@ -141,11 +141,11 @@ def run_pipeline(
     return planned_modules
 
 
-def _module_catalog_for_run(config: PipelineConfig) -> tuple[ModuleContract, ...]:
+def _module_catalog_for_run(config: DatasetRunConfig) -> tuple[ModuleContract, ...]:
     return tuple(module.describe_module() for module in _module_sequence_for_run(config))
 
 
-def _module_sequence_for_run(config: PipelineConfig):
-    if config.runtime.enable_plots:
+def _module_sequence_for_run(config: DatasetRunConfig):
+    if config.runtime.plots_enabled():
         return PIPELINE_MODULES
     return tuple(module for module in PIPELINE_MODULES if module is not plotting)

@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from .config import PipelineConfig
+from .config import DatasetRunConfig
 
 
 @dataclass(frozen=True)
@@ -29,7 +29,7 @@ class DatasetArtifactPaths:
     plots_dir: Path
 
 
-def build_artifact_paths(config: PipelineConfig) -> DatasetArtifactPaths:
+def build_artifact_paths(config: DatasetRunConfig) -> DatasetArtifactPaths:
     """Build absolute artifact paths from the configured output roots."""
 
     dataset_id = config.dataset.dataset_id

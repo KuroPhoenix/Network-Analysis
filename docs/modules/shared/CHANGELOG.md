@@ -2,6 +2,13 @@
 
 ## 2026-03-12
 
+1. Purpose of modification: finish the shared-layer convergence into the active root-level package layout.
+2. What changed: replaced the old bridge-era config loaders with a single active `config.py`, moved artifact, type, constant, and schema helpers to the root package, and removed the `shared/` package boundary.
+3. Impact on other pipeline modules: all runtime and pipeline modules now depend on one direct active config surface without changing baseline, timeout, flow-key, or metric formulas.
+4. Required maintenance or follow-up updates: keep `config.py`, `artifacts.py`, and `schemas.py` aligned whenever new runtime controls or output contracts are added.
+
+## 2026-03-12
+
 1. Purpose of modification: align shared configuration contracts with the active public architecture.
 2. What changed: removed the public legacy batch-config surface from the repo, kept `dataset_template.yaml` plus `run_conf.yaml` as the only documented public config pair, and reclassified the older `PipelineConfig` loader as internal bridge machinery.
 3. Impact on other pipeline modules: the runtime and docs now share one public config story, while module-level tests can still use the internal bridge config until later refactor slices remove it.

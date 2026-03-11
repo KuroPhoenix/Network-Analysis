@@ -2,6 +2,13 @@
 
 ## 2026-03-12
 
+1. Purpose of modification: finish the active-architecture runtime convergence.
+2. What changed: removed the internal bridge config path, switched runtime planning to produce executable per-dataset configs directly from the active config pair, and aligned plotting selection with `runtime.plotting_mode`.
+3. Impact on other pipeline modules: runtime now composes the flatter root-level package layout without changing baseline, timeout, flow-key, or metric semantics.
+4. Required maintenance or follow-up updates: keep runtime manifests and cache retention aligned if future runtime-only controls are added.
+
+## 2026-03-12
+
 1. Purpose of modification: make the runtime the sole public execution boundary required by the active architecture.
 2. What changed: removed the public legacy CLI and batch execution surfaces, leaving the dataset-root runtime as the only documented entrypoint while keeping the internal `PipelineConfig` bridge for module execution.
 3. Impact on other pipeline modules: runtime now owns the only public run path, but no baseline, sampling, metrics, or unit semantics changed.

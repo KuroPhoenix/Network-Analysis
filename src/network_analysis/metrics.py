@@ -3,11 +3,11 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+from .artifacts import build_artifact_paths
 from .base import ModuleContract
-from ..shared.artifacts import build_artifact_paths
-from ..shared.constants import PREFERRED_TABULAR_FORMAT
-from ..shared.config import PipelineConfig
-from ..shared.types import ArtifactContract, ByteBasis, ModuleName, SizeBasis
+from .config import DatasetRunConfig
+from .constants import PREFERRED_TABULAR_FORMAT
+from .types import ArtifactContract, ByteBasis, ModuleName, SizeBasis
 
 MODULE_CONTRACT = ModuleContract(
     name=ModuleName.METRICS,
@@ -59,7 +59,7 @@ class BaselineFlowRecord:
     sending_rate_bytes_per_second: float | None
 
 
-def run_module(config: PipelineConfig) -> tuple[Path, Path]:
+def run_module(config: DatasetRunConfig) -> tuple[Path, Path]:
     """Compare sampled packet observations against the fixed baseline flow table."""
 
     import polars as pl
@@ -136,7 +136,7 @@ def run_module(config: PipelineConfig) -> tuple[Path, Path]:
     return artifact_paths.metric_summary, artifact_paths.flow_metrics
 
 
-def _prepare_baseline_records(baseline_frame, config: PipelineConfig) -> tuple[list[BaselineFlowRecord], dict[tuple[object, ...], list[BaselineFlowRecord]]]:
+def _prepare_baseline_records(baseline_frame, config: DatasetRunConfig) -> tuple[list[BaselineFlowRecord], dict[tuple[object, ...], list[BaselineFlowRecord]]]:
     required_fields = (
         "flow_id",
         "start_timestamp_us",
@@ -180,7 +180,7 @@ def _prepare_baseline_records(baseline_frame, config: PipelineConfig) -> tuple[l
     return records, by_key
 
 
-def _match_sampled_packets_to_baseline(sampled_packet_frame, baseline_by_key, config: PipelineConfig) -> dict[str, list[dict[str, int]]]:
+def _match_sampled_packets_to_baseline(sampled_packet_frame, baseline_by_key, config: DatasetRunConfig) -> dict[str, list[dict[str, int]]]:
     import polars as pl
 
     matched_packets = {
@@ -221,7 +221,7 @@ def _match_sampled_packets_to_baseline(sampled_packet_frame, baseline_by_key, co
 
 def _build_flow_metric_row(
     *,
-    config: PipelineConfig,
+    config: DatasetRunConfig,
     baseline_record: BaselineFlowRecord,
     sampled_packets: list[dict[str, int]],
     sampling_rate: int,

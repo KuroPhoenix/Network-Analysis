@@ -4,11 +4,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 import socket
 
+from .artifacts import build_artifact_paths
 from .base import ModuleContract
-from ..shared.artifacts import build_artifact_paths
-from ..shared.constants import PREFERRED_TABULAR_FORMAT
-from ..shared.config import PipelineConfig
-from ..shared.types import ArtifactContract, CaptureFormat, ModuleName
+from .config import DatasetRunConfig
+from .constants import PREFERRED_TABULAR_FORMAT
+from .types import ArtifactContract, CaptureFormat, ModuleName
 
 MODULE_CONTRACT = ModuleContract(
     name=ModuleName.PACKET_EXTRACTION,
@@ -42,7 +42,7 @@ def describe_module() -> ModuleContract:
     return MODULE_CONTRACT
 
 
-def run_module(config: PipelineConfig) -> tuple[Path, Path]:
+def run_module(config: DatasetRunConfig) -> tuple[Path, Path]:
     """Extract a canonical packet table from staged capture files."""
 
     import polars as pl

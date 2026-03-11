@@ -8,14 +8,14 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-from network_analysis.modules import flow_construction
-from network_analysis.shared.artifacts import build_artifact_paths
-from network_analysis.shared.config import load_pipeline_config
+from network_analysis import flow_construction
+from network_analysis.artifacts import build_artifact_paths
+
+from tests.support import build_dataset_run_config
 
 
 def test_flow_construction_respects_timeout_boundary_and_zero_duration_flows(tmp_path: Path) -> None:
-    config_path = _write_config(tmp_path)
-    config = load_pipeline_config(config_path)
+    config = build_dataset_run_config(tmp_path, raw_glob="*.pcap", plotting_mode="off")
     artifact_paths = build_artifact_paths(config)
     artifact_paths.processed_dir.mkdir(parents=True, exist_ok=True)
 
@@ -187,44 +187,3 @@ def _packet_rows() -> list[dict[str, object]]:
             "flow_ineligible_reason": None,
         },
     ]
-
-
-def _write_config(tmp_path: Path) -> Path:
-    config_path = tmp_path / "pipeline.yaml"
-    config_path.write_text(
-        f"""
-dataset:
-  dataset_id: fixture_trace
-  input_dir: {tmp_path / "raw"}
-  raw_glob: "*.pcap"
-
-output:
-  staged_dir: {tmp_path / "staged"}
-  processed_dir: {tmp_path / "processed"}
-  results_tables_dir: {tmp_path / "tables"}
-  results_plots_dir: {tmp_path / "plots"}
-
-methodology:
-  flow_key_fields:
-    - src_ip
-    - dst_ip
-    - src_port
-    - dst_port
-    - protocol
-  inactivity_timeout_seconds: 15
-  size_basis: packets
-  byte_basis: captured_len
-
-sampling:
-  rates:
-    - 2
-  method: systematic
-
-runtime:
-  workers: 1
-  enable_plots: false
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
-    return config_path

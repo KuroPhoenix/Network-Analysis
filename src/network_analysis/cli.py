@@ -6,10 +6,9 @@ import argparse
 from pathlib import Path
 from typing import Sequence
 
-from .modules.base import ModuleNotImplementedError
-from .shared.config import ConfigError
+from .base import ModuleNotImplementedError
+from .config import ConfigError, V2ConfigError, load_dataset_template, load_run_config
 from .runtime import override_datasets_root, render_active_plan, run_active_runs
-from .shared.v2_config import V2ConfigError, load_dataset_template, load_run_config
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -10,7 +10,6 @@
 ## Maintenance guidelines
 
 - Update this module first when adding a new module-level config parameter or shared schema.
-- Keep the active config loaders and the internal bridge config structures aligned on methodology defaults.
 - Review downstream modules after any change to timeouts, flow keys, size basis labels, byte basis, or output-path conventions.
 - Review ingest and packet extraction together whenever provenance-order schema fields or canonical timestamp fields change.
 - Re-check schema columns against real module outputs whenever a previously placeholder module becomes executable.
@@ -24,4 +23,4 @@
 
 - Add stricter schema validation once later flow, sampling, and metric artefacts exist.
 - Add fixtures that validate config normalisation, byte-basis handling, and artifact-path resolution together.
-- Remove the internal bridge-only YAML loader once later refactor slices stop needing it for module-level test scaffolding.
+- Keep the root-level support files cohesive so the repo does not drift back into hidden cross-module config logic.

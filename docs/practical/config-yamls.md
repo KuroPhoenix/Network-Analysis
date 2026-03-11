@@ -101,7 +101,7 @@ Current top-level sections:
 
 - `plotting_mode`
   - optional
-  - current bridge values:
+  - current supported values:
     - `minimal`
     - `off`
 - `cache_policy`
@@ -120,7 +120,7 @@ Current top-level sections:
 ## Current runtime behaviour
 
 - the active entrypoint is the only public CLI surface
-- the active runtime still adapts into the current executable module bridge
+- the active runtime resolves one dataset-scoped executable config per dataset directory
 - `cache_policy` controls hidden cache roots under `.cache/network_analysis/<policy>/`
 - `none` removes dataset-scoped staged and processed cache after a successful run
 - `minimal` removes only the staged cache after a successful run and keeps processed intermediates

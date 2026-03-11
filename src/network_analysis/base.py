@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 
-from ..shared.config import PipelineConfig
-from ..shared.types import ArtifactContract, ModuleName
+from .config import DatasetRunConfig
+from .types import ArtifactContract, ModuleName
 
 
 class ModuleNotImplementedError(NotImplementedError):
@@ -20,7 +20,7 @@ class ModuleContract:
     outputs: tuple[ArtifactContract, ...]
     implemented: bool = False
 
-    def resolve_output_paths(self, config: PipelineConfig) -> tuple[str, ...]:
+    def resolve_output_paths(self, config: DatasetRunConfig) -> tuple[str, ...]:
         """Resolve artifact templates using the configured dataset identifier."""
 
         dataset_id = config.dataset.dataset_id
@@ -28,4 +28,3 @@ class ModuleContract:
             artifact.relative_path_template.format(dataset_id=dataset_id)
             for artifact in self.outputs
         )
-
