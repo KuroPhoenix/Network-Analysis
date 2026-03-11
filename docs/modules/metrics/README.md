@@ -62,11 +62,15 @@ The per-flow table contains one row per baseline flow per sampling rate per requ
 - Each sampled eligible packet is matched back to a baseline flow by:
   - the configured directional flow key
   - inclusion within that baseline flow's `[start_timestamp_us, end_timestamp_us]` interval
+  - a per-key backward as-of join on `start_timestamp_us`, followed by an explicit `timestamp_us <= end_timestamp_us` interval check
 - If a sampled eligible packet cannot be matched to any baseline flow interval for its key, the module raises an error rather than silently dropping it.
 - Flow detection rate is computed over all baseline flows:
   - `detected_flow_count / baseline_flow_count`
   - baseline flows with no matched sampled packets are emitted as `undetected`
 - The module emits one per-flow row for every baseline flow at every sampling rate and requested size basis, which keeps the undetected denominator explicit.
+- Execution is per sampling rate:
+  - sampled packets are aggregated to per-flow observations with Polars rather than expanded into Python packet lists
+  - each sampling-rate flow-metric slice is written to a temporary Parquet part before the final `flow_metrics.parquet` file is assembled
 - Size estimation follows the MVP formulas:
   - packets: `observed_sampled_packet_count * sampling_rate`
   - bytes: `observed_sampled_byte_count * sampling_rate`
@@ -91,3 +95,4 @@ The per-flow table contains one row per baseline flow per sampling rate per requ
 - The module matches sampled packets to baseline intervals, not to sampled-flow fragments.
 - Detection status is binary per baseline flow for a given sampling rate: at least one matched sampled packet means `detected`.
 - The summary table currently contains only detection-oriented aggregates; it does not yet include means or quantiles of the distortion metrics.
+- Large datasets still require substantial memory during the per-rate joins, but the module no longer accumulates all sampling rates and all per-flow rows in Python memory at once.

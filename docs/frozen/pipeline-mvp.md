@@ -55,6 +55,9 @@ At minimum, each module should provide:
 - `CHANGELOG.md`
 - `Maintenance.md`
 
+Routine implementation history should default to Git history.
+Keep module `CHANGELOG.md` files for purpose-, architecture-, direction-, or milestone-driven notes rather than routine implementation churn.
+
 These documents must be kept consistent with the implemented behaviour, interfaces, assumptions, and downstream/upstream integration of the module.
 
 
