@@ -1,4 +1,4 @@
-"""Minimal CLI for validating and planning the MVP pipeline."""
+"""CLI for both the legacy MVP surface and the active dataset-root surface."""
 
 from __future__ import annotations
 
@@ -9,6 +9,8 @@ from typing import Sequence
 from .modules.base import ModuleNotImplementedError
 from .pipeline.driver import render_pipeline_plan, run_pipeline
 from .shared.config import ConfigError, load_pipeline_config
+from .runtime import override_datasets_root, render_active_plan, run_active_runs
+from .shared.v2_config import V2ConfigError, load_dataset_template, load_run_config
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -22,9 +24,41 @@ def build_parser() -> argparse.ArgumentParser:
         "--config",
         type=Path,
         default=Path("configs/pipeline.sample.yaml"),
-        help="Path to the pipeline configuration file.",
+        help="Path to the legacy MVP pipeline configuration file.",
     )
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    parser.add_argument(
+        "--run-config",
+        type=Path,
+        help="Path to the active-architecture run config.",
+    )
+    parser.add_argument(
+        "--dataset-template",
+        type=Path,
+        help="Path to the active-architecture dataset template config.",
+    )
+    parser.add_argument(
+        "--datasets-root",
+        type=Path,
+        help="Optional datasets-root override for the active architecture.",
+    )
+    parser.add_argument(
+        "--plan",
+        action="store_true",
+        dest="active_plan",
+        help="Print the active-architecture dataset plan without executing runs.",
+    )
+    parser.add_argument(
+        "--validate-config",
+        action="store_true",
+        dest="active_validate",
+        help="Load the active-architecture configs and print the resolved settings.",
+    )
+    parser.add_argument(
+        "--legacy",
+        action="store_true",
+        help="Force the legacy MVP CLI interpretation even when active-architecture flags are present.",
+    )
+    subparsers = parser.add_subparsers(dest="command")
 
     subparsers.add_parser(
         "validate-config",
@@ -51,8 +85,39 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     parser = build_parser()
     args = parser.parse_args(argv)
+    use_active_surface = not args.legacy and (
+        args.run_config is not None
+        or args.dataset_template is not None
+        or args.datasets_root is not None
+        or args.active_plan
+        or args.active_validate
+    )
 
     try:
+        if use_active_surface:
+            if args.command is not None:
+                parser.error("Legacy subcommands cannot be combined with the active-architecture flags.")
+
+            dataset_template = load_dataset_template(
+                args.dataset_template or Path("configs/dataset_template.yaml")
+            )
+            run_config = load_run_config(args.run_config or Path("configs/run_conf.yaml"))
+            if args.datasets_root is not None:
+                run_config = override_datasets_root(run_config, args.datasets_root)
+
+            if args.active_validate:
+                print("\n".join((*dataset_template.summary_lines(), *run_config.summary_lines())))
+                return 0
+            if args.active_plan:
+                print(render_active_plan(run_config, dataset_template))
+                return 0
+
+            run_active_runs(run_config, dataset_template, dry_run=False)
+            return 0
+
+        if args.command is None:
+            parser.error("A legacy subcommand or active-architecture flag is required.")
+
         config = load_pipeline_config(args.config)
         if args.command == "validate-config":
             print("\n".join(config.summary_lines()))
@@ -65,7 +130,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.dry_run:
                 print(render_pipeline_plan(config))
             return 0
-    except ConfigError as exc:
+    except (ConfigError, V2ConfigError, FileNotFoundError, NotADirectoryError) as exc:
         print(f"Configuration error: {exc}")
         return 2
     except ModuleNotImplementedError as exc:

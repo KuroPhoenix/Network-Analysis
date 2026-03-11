@@ -1,23 +1,126 @@
 # Config YAML Reference
 
-This document explains the YAML files used by the current frozen-MVP command surface.
-It documents the current implementation interface, not the target post-MVP config model described in [docs/hot/pipeline-v2.md](../hot/pipeline-v2.md).
-When the v2 config migration lands, this document should be updated or retired rather than expanded in parallel with a competing config contract.
-The repository now also ships the active-architecture scaffolding files [configs/dataset_template.yaml](../../configs/dataset_template.yaml) and [configs/run_conf.yaml](../../configs/run_conf.yaml), but they are not yet the canonical runtime interface until the single-entrypoint migration lands.
+This document explains both:
+
+- the active post-MVP config pair used by the canonical dataset-root entrypoint; and
+- the older frozen-MVP config files that still remain as compatibility interfaces.
 
 It covers:
 
-- single-dataset pipeline configs used by `scripts/run_pipeline.py`
-- batch dataset-folder configs used by `scripts/run_dataset_batches.py`
+- active-architecture configs used by `scripts/run_pipeline.py`
+- legacy single-dataset pipeline configs
+- legacy batch dataset-folder configs
 - field meanings
 - defaults
 - output layout
 
 The current example config files are:
 
+- [configs/dataset_template.yaml](../../configs/dataset_template.yaml)
+- [configs/run_conf.yaml](../../configs/run_conf.yaml)
 - [configs/pipeline.sample.yaml](../../configs/pipeline.sample.yaml)
 - [configs/demo.pipeline.yaml](../../configs/demo.pipeline.yaml)
 - [configs/datasets.batch.yaml](../../configs/datasets.batch.yaml)
+
+## Active Architecture Config Pair
+
+Use the canonical local entrypoint with:
+
+```bash
+python scripts/run_pipeline.py --run-config configs/run_conf.yaml --datasets-root datasets
+python scripts/run_pipeline.py --run-config configs/run_conf.yaml --datasets-root datasets --validate-config
+python scripts/run_pipeline.py --run-config configs/run_conf.yaml --datasets-root datasets --plan
+```
+
+### `dataset_template.yaml`
+
+This file controls dataset discovery defaults.
+
+Current fields:
+
+- `discovery.dataset_glob`
+  - optional
+  - default: `*`
+- `discovery.raw_glob`
+  - optional
+  - default: `*.pcap*`
+
+Important behaviour:
+
+- each immediate child folder under the datasets root is treated as one dataset unit
+- direct child files matched by `raw_glob` are treated as inputs for that dataset run
+- unsupported non-capture files are ignored during active run resolution
+
+### `run_conf.yaml`
+
+This file controls the active dataset-root run.
+
+Current top-level sections:
+
+- `input`
+- `output`
+- `methodology` optional
+- `sampling` optional
+- `runtime` optional
+
+Key fields:
+
+- `input.datasets_root`
+  - required
+  - root directory whose immediate child folders are treated as dataset runs
+- `output.results_root`
+  - required
+  - root directory for dataset-scoped result outputs
+- `methodology.flow_key_fields`
+  - optional
+  - default directional 5-tuple
+- `methodology.inactivity_timeout_seconds`
+  - optional
+  - default: `15`
+- `methodology.size_basis`
+  - optional
+  - default: `packets`
+- `methodology.byte_basis`
+  - optional
+  - default: `captured_len`
+- `sampling.rates`
+  - optional
+  - list of `X` values in `1:X`
+- `sampling.method`
+  - optional
+  - default: `systematic`
+- `sampling.random_seed`
+  - optional
+  - required in practice for reproducible random sampling
+- `runtime.plotting_mode`
+  - optional
+  - current bridge values:
+    - `minimal`
+    - `off`
+- `runtime.cache_policy`
+  - optional
+  - one of:
+    - `none`
+    - `minimal`
+    - `debug`
+- `runtime.workers`
+  - optional
+  - default: `1`
+- `runtime.logging.level`
+  - optional
+  - default: `INFO`
+
+Important behaviour:
+
+- the active entrypoint still adapts into the current executable pipeline modules
+- `cache_policy` is now explicit in config, but intermediate retention still follows the legacy storage model until the cache slice lands
+- `results_root` is already dataset-scoped for metric tables
+- the current plotting module still writes below a dataset-specific leaf inside each dataset plot root
+- `meta/` and `logs/` persistence are not implemented yet
+
+## Legacy MVP Config Surfaces
+
+The following sections describe the older compatibility interfaces that still exist in the repo.
 
 ## Path Resolution Rule
 

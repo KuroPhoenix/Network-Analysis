@@ -212,10 +212,8 @@ def load_run_config(path: str | Path) -> RunConfig:
             random_seed=_optional_int(sampling_data.get("random_seed"), "sampling.random_seed"),
         ),
         runtime=V2RuntimeConfig(
-            plotting_mode=_optional_string(
-                runtime_data.get("plotting_mode"),
-                "runtime.plotting_mode",
-                default=DEFAULT_PLOTTING_MODE,
+            plotting_mode=_parse_plotting_mode(
+                runtime_data.get("plotting_mode", DEFAULT_PLOTTING_MODE)
             ),
             cache_policy=_parse_cache_policy(runtime_data.get("cache_policy", CachePolicy.MINIMAL.value)),
             workers=_require_positive_int(runtime_data.get("workers", 1), "runtime.workers"),
@@ -303,3 +301,9 @@ def _parse_cache_policy(value: Any) -> CachePolicy:
         return CachePolicy(str(value))
     except ValueError as exc:
         raise V2ConfigError("runtime.cache_policy must be one of: none, minimal, debug.") from exc
+
+
+def _parse_plotting_mode(value: Any) -> str:
+    if isinstance(value, bool):
+        return DEFAULT_PLOTTING_MODE if value else "off"
+    return _require_non_empty_string(value, "runtime.plotting_mode")

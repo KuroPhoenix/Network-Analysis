@@ -15,5 +15,5 @@ DEFAULT_SAMPLING_METHOD = "systematic"
 DEFAULT_SIZE_BASIS = "packets"
 DEFAULT_BYTE_BASIS = "captured_len"
 PREFERRED_TABULAR_FORMAT = "parquet"
-CANONICAL_SPEC_PATH = Path("docs/specs/pipeline-mvp.md")
+CANONICAL_SPEC_PATH = Path("docs/frozen/pipeline-mvp.md")
 COMPATIBILITY_SPEC_PATH = Path("docs/pipeline-mvp.md")

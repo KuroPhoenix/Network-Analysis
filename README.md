@@ -118,11 +118,22 @@ pip install -r requirements.txt
 
 This repository uses a `src/` layout. Package-internal imports therefore use relative imports or `network_analysis...` imports, not `src.network_analysis...`. `pyrightconfig.json` points static analysis tools at `src/`, and the repository entrypoints under `scripts/` add `src/` automatically for local execution without requiring an editable install.
 
-The commands below describe the current frozen-MVP command surface that still exists in the repository today.
-They are not the final post-MVP target interface described in [docs/hot/pipeline-v2.md](docs/hot/pipeline-v2.md).
-As v2 refactors land, legacy commands and config files should be refined, clearly marked as legacy, or removed rather than kept as competing interfaces.
+The canonical post-MVP local entrypoint is now:
 
-One tiny local example from the current MVP interface:
+```bash
+python scripts/run_pipeline.py --run-config configs/run_conf.yaml --datasets-root datasets
+```
+
+Optional inspection commands for the active architecture:
+
+```bash
+python scripts/run_pipeline.py --run-config configs/run_conf.yaml --datasets-root datasets --validate-config
+python scripts/run_pipeline.py --run-config configs/run_conf.yaml --datasets-root datasets --plan
+```
+
+The older frozen-MVP config and batch commands still exist as compatibility surfaces while the v2 migration continues.
+
+One tiny local example from the legacy MVP interface:
 
 ```bash
 python scripts/create_demo_capture.py --overwrite
@@ -133,29 +144,26 @@ That flow writes the demo capture under `data/raw/demo_trace/`, then runs the lo
 
 ## Batch Dataset Folders
 
-If you want one reusable config that scans `datasets/` automatically with the current frozen-MVP batch wrapper, use:
+If you still need the legacy frozen-MVP batch wrapper, use:
 
 ```bash
 python scripts/run_dataset_batches.py --config configs/datasets.batch.yaml plan
 python scripts/run_dataset_batches.py --config configs/datasets.batch.yaml run
 ```
 
-The batch runner treats each immediate subfolder under the configured `datasets_root` as one dataset collection, discovers capture files recursively inside it, and runs the existing single-dataset pipeline once per capture file. This avoids concatenating unrelated traces into one synthetic baseline run.
+The batch runner treats each immediate subfolder under the configured `datasets_root` as one dataset run and processes the direct child capture files matched by `*.pcap*` together as one baseline/sampling experiment.
 
-By default, the runner infers a traffic category from filenames such as `BRAS_capture_game_1.pcap` and stores outputs like this:
+Its metric outputs are dataset-scoped:
 
 ```text
 results/
-  Anonymized_bras_dataset/
-    game/
-      tables/
-      plots/
-    video/
-      tables/
-      plots/
+  bras/
+    tables/
+  onu/
+    tables/
 ```
 
-If a filename does not match the default category pattern, it is stored under `uncategorized/`.
+The current plotting module still writes under a dataset-specific leaf inside each dataset plot root, so full plot-path convergence remains a follow-up refactor.
 
 ## Dataset Expectations
 
