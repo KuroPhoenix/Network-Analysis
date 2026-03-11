@@ -60,6 +60,8 @@ At minimum, each module should provide:
 
 These documents must be kept consistent with the implemented behaviour, interfaces, assumptions, and downstream/upstream integration of the module.
 
+
+
 ---
 
 ## Scope of the MVP
@@ -168,23 +170,34 @@ The repo may expect some directional sampling effects, but the MVP must treat th
 The MVP must support these flow-level metrics:
 
 ### Baseline metrics (`1:1`)
-- **Flow size** = total packet count or byte count observed in the full trace for the reconstructed flow
+- **Flow Byte size** = total byte count observed in the full trace for the reconstructed flow 
+- **Flow Packet size** = total packet count observed in the full trace for the reconstructed flow
 - **Flow duration** = `last_packet_timestamp - first_packet_timestamp`
-- **Flow sending rate** = `flow size / flow duration`
+- **Flow byte sending rate** = `flow byte size / flow duration`
+- **Flow byte sending rate** = `flow packet size / flow duration`
 - **Flow detection rate** = `100%`
 
+
 ### Sampled metrics (`1:X`)
-- **Sampled flow size estimate** = sampled packets observed in the reconstructed sampled flow × sampling rate, unless the experiment explicitly uses another estimator
+- **Sampled flow packet size estimate** = sampled packets observed in the reconstructed sampled flow × sampling rate, unless the experiment explicitly uses another estimator
+- **Sampled flow byte size estimate** = total sampled bytes observed in the reconstructed sampled flow × sampling rate, unless the experiment explicitly uses another estimator. The accumulation formula is as follows:
+```
+For each packet's byte size:
+    total size += packet byte size * sampling rate
+```
 - **Sampled flow duration** = `last_sampled_packet_timestamp - first_sampled_packet_timestamp` within the sampled reconstruction only
-- **Sampled flow sending rate** = `sampled flow size estimate / sampled flow duration`
+- **Sampled flow packet sending rate** = `sampled flow packet size estimate / sampled flow duration`
+- **Sampled flow size sending rate** = `sampled flow byte size estimate / sampled flow duration`
 - **Flow detection rate** = `detected baseline flows / total baseline flows`
 
 ### Derived distortion metrics
 Use these definitions in the MVP:
 
-- **Flow size overestimation factor** = `sampled flow size estimate / actual baseline flow size`
+- **Flow packet size overestimation factor** = `sampled flow size estimate / actual baseline flow size`
+- **Flow byte size overestimation factor** = `sampled flow size estimate / actual baseline flow size`
 - **Flow duration underestimation factor** = `sampled flow duration / actual baseline flow duration`
-- **Flow sending rate overestimation factor** = `flow size overestimation factor / flow duration underestimation factor`
+- **Flow byte sending rate overestimation factor** = `flow byte size overestimation factor / flow duration underestimation factor`
+- **Flow packet sending rate overestimation factor** = `flow packet size overestimation factor / flow duration underestimation factor`
 
 ### Undefined cases
 If a denominator is zero, the metric must be represented as explicitly undefined, such as `NA`, `null`, or another clearly documented non-numeric value.
@@ -193,6 +206,8 @@ This applies especially to:
 - zero-duration flows;
 - rates derived from zero-duration flows;
 - ratio metrics whose denominator is zero.
+
+For these null-flows, filter them out for the subsequent flow metric calculation and plotting.
 
 ---
 
@@ -247,7 +262,8 @@ The MVP packet table should include, at minimum:
 - `dataset_id`
 - `source_file`
 - `packet_index`
-- `timestamp`
+- `packet_size` in bytes
+- `timestamp` 
 - `captured_len`
 - `wire_len` if available
 - `protocol`
@@ -294,8 +310,8 @@ A baseline flow table with, at minimum:
 - `start_ts`
 - `end_ts`
 - `duration`
-- `packet_count` and/or `byte_count`
-- `sending_rate_packets` and/or `sending_rate_bytes`
+- `packet_count` and `byte_count`
+- `sending_rate_packets` and `sending_rate_bytes`
 - any labels needed to state the size basis clearly
 
 ### Rules
@@ -364,15 +380,21 @@ At minimum:
   - undetected baseline flow count
   - flow detection rate
 - one metric table containing:
-  - baseline size
-  - sampled size estimate
+  - baseline size in bytes
+  - baseline size in packets
+  - sampled size in bytes estimate
+  - sampled size in packets estimate
   - baseline duration
   - sampled duration
-  - baseline sending rate
-  - sampled sending rate
-  - flow size overestimation factor
+  - baseline sending rate in bytes/sec
+  - baseline sending rate in packets/sec
+  - sampled sending rate in bytes/sec
+  - sampled sending rate in packets/sec
+  - flow packet size overestimation factor
+  - flow byte size overestimation factor
   - flow duration underestimation factor
-  - flow sending rate overestimation factor
+  - flow sending rate (byte) overestimation factor
+  - flow sending rate (packet) overestimation factor
   - detection status
 
 ### Rules
@@ -511,7 +533,7 @@ The MVP configuration must make these parameters explicit and easy to inspect:
 - inactivity timeout;
 - sampling rate list;
 - sampling method;
-- size basis: packets, bytes, or both;
+- size basis: both packets, bytes;
 - plotting enable/disable or plot selection;
 - worker count if CPU parallelism is exposed.
 

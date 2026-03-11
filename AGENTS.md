@@ -238,9 +238,11 @@ If the flow key is ambiguous, state the ambiguity instead of guessing.
 ## Core metrics
 
 Always prioritise these flow-level metrics:
-- **Flow size estimation**
+- **Flow byte size estimation**
+- **Flow packet size estimation**
 - **Flow duration**
-- **Flow sending rate**
+- **Flow sending rate in byte/sec**
+- **Flow sending rate in packet/sec**
 - **Flow detection rate**
 
 These metrics evaluate both:
@@ -251,19 +253,27 @@ These metrics evaluate both:
 Treat the `1:1` case as the full-trace baseline.
 
 Definitions:
-- **Flow size** = accumulate the packets captured in the flow.
+- **Flow packet size** = accumulate the packets captured in the flow.
+- **Flow byte size** = accumulate the bytes captured in the flow.
 - **Flow duration** = duration derived from the actual observed flow packets in the full trace.
-- **Flow sending rate** = size / duration.
+- **Flow sending rate in byte/sec** = packet size / duration.
+- **Flow sending rate in packet/sec** = packets / duration.
 - **Flow detection rate** = 100%.
 
 ### `1:X` sample rate
 Treat every `1:X` case as a sampled approximation that must be evaluated against the `1:1` baseline.
 
 Definitions:
-- **Flow size** = number of captured packets in a flow × sampling rate.
-- **Flow duration** = duration derived from the sampled packets only.
-- **Flow sending rate** = sampled flow size / sampled flow duration.
-- **Flow detection rate** = number of flows detected under the sampling scheme / actual number of flows in the full-trace baseline.
+- **Sampled flow packet size estimate** = sampled packets observed in the reconstructed sampled flow × sampling rate, unless the experiment explicitly uses another estimator
+- **Sampled flow byte size estimate** = total sampled bytes observed in the reconstructed sampled flow × sampling rate, unless the experiment explicitly uses another estimator. The accumulation formula is as follows:
+```
+For each packet's byte size:
+    total size += packet byte size * sampling rate
+```
+- **Sampled flow duration** = `last_sampled_packet_timestamp - first_sampled_packet_timestamp` within the sampled reconstruction only
+- **Sampled flow packet sending rate** = `sampled flow packet size estimate / sampled flow duration`
+- **Sampled flow size sending rate** = `sampled flow byte size estimate / sampled flow duration`
+- **Flow detection rate** = `detected baseline flows / total baseline flows`
 
 A flow that exists in the full trace but has no sampled packets must be treated as an **undetected flow**.
 Do not silently exclude such flows from completeness analysis.
@@ -274,19 +284,17 @@ Do not silently exclude such flows from completeness analysis.
 
 Support these distortion metrics when relevant:
 
-- **Flow size overestimation factor** = sampled flow size / actual flow size
-- **Flow duration underestimation factor** = sampled flow duration / actual flow duration
-- **Flow sending rate overestimation factor** = flow size overestimation factor / flow duration underestimation factor
+- **Flow packet size overestimation factor** = `sampled flow size estimate / actual baseline flow size`
+- **Flow byte size overestimation factor** = `sampled flow size estimate / actual baseline flow size`
+- **Flow duration underestimation factor** = `sampled flow duration / actual baseline flow duration`
+- **Flow byte sending rate overestimation factor** = `flow byte size overestimation factor / flow duration underestimation factor`
+- **Flow packet sending rate overestimation factor** = `flow packet size overestimation factor / flow duration underestimation factor`
 
 Interpret the duration ratio carefully:
 - values below `1` indicate underestimation;
 - values near `1` indicate closer agreement.
 
 Do not mix packet-count and byte-count interpretations without explicitly stating so.
-
-If size is measured in packets, report packets.
-If size is measured in bytes, report bytes.
-If both are reported, keep them explicitly separated.
 
 ---
 
@@ -471,6 +479,22 @@ This file records meaningful modifications to the module over time. Each entry s
 3. the impact on other modules or pipeline stages;
 4. any required maintenance or follow-up updates.
 
+Note that in this markdown file, earlier entries are not allowed to be modified. This file can only add more logs, and not modify or delete existing logs. 
+
+A sample log would look like:
+```markdown=
+## |date| |Topic/Change description|
+### Purpose of this change
+< Reasons >
+### Previous Implementation
+< Content >
+### Proposed new Implementation
+< Content >
+### Impacts on other modules or pipeline steps
+< Content >
+### Updates on maintenance
+< Content >
+```
 ### `Maintenance.md`
 This file should contain:
 - usage notes;
