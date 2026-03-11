@@ -3,6 +3,7 @@
 This document explains the YAML files used by the current frozen-MVP command surface.
 It documents the current implementation interface, not the target post-MVP config model described in [docs/hot/pipeline-v2.md](../hot/pipeline-v2.md).
 When the v2 config migration lands, this document should be updated or retired rather than expanded in parallel with a competing config contract.
+The repository now also ships the active-architecture scaffolding files [configs/dataset_template.yaml](../../configs/dataset_template.yaml) and [configs/run_conf.yaml](../../configs/run_conf.yaml), but they are not yet the canonical runtime interface until the single-entrypoint migration lands.
 
 It covers:
 

@@ -6,7 +6,13 @@ The `shared` module is the common definitions layer for the local-first pipeline
 
 ## Current scope
 
-This module now holds the shared config, schema, type, constant, and artifact-path logic for the executable local MVP slices. It does not parse packet captures or compute flow metrics itself, but later modules now depend on it for resolved dataset artifact paths, the explicit byte-basis contract, and the documented baseline-flow, sampled-packet, sampled-flow, sampling-manifest, and metric-table schemas.
+This module now holds the shared config, schema, type, constant, and artifact-path logic for both the executable MVP path and the early v2 scaffolding. It does not parse packet captures or compute flow metrics itself, but later modules now depend on it for:
+
+- legacy single-dataset and batch config parsing;
+- active-architecture `dataset_template.yaml` and `run_conf.yaml` loading;
+- resolved dataset-run discovery under a dataset root;
+- resolved dataset artifact paths for staged, processed, and result outputs;
+- the explicit byte-basis contract and the documented baseline-flow, sampled-packet, sampled-flow, sampling-manifest, and metric-table schemas.
 
 ## Inputs
 
@@ -16,6 +22,8 @@ This module now holds the shared config, schema, type, constant, and artifact-pa
 ## Outputs
 
 - Normalised configuration objects.
+- Active-architecture dataset template and run-config objects.
+- Resolved dataset-scoped run objects for the v2 entrypoint migration.
 - Shared constants and type aliases.
 - Schema contracts for module inputs and outputs.
 - Resolved dataset artifact paths for staged, processed, and result outputs.
@@ -32,6 +40,7 @@ This module now holds the shared config, schema, type, constant, and artifact-pa
 - Size basis must remain explicit.
 - Byte basis must remain explicit when bytes are requested.
 - Packet ordering must remain reproducible when multiple raw files or archive members are staged.
+- Dataset-root discovery for the active architecture must stay deterministic and must resolve one dataset-scoped run per dataset folder unless an explicit override is added later.
 - Raw inputs are treated as immutable.
 - Parquet is the preferred main intermediate tabular format.
 - Shared schemas should keep zero-duration and undefined-rate cases visible instead of coercing them into misleading numeric defaults.
@@ -41,6 +50,7 @@ This module now holds the shared config, schema, type, constant, and artifact-pa
 - The shared layer intentionally does not hide methodology decisions behind driver defaults; later modules still need to enforce their own runtime validation.
 - Dataset-specific acceptance metadata rules are still incomplete; the shared layer only carries the fields needed for reproducible local execution.
 - Schema definitions assume the default directional 5-tuple unless a config override is made and propagated deliberately.
+- The v2 config layer is additive scaffolding in the current repo state; it is not yet the canonical runtime entrypoint.
 
 ## Upstream and downstream contracts
 

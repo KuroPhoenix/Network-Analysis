@@ -135,7 +135,7 @@ The current repository is directionally aligned with this active architecture, b
 Known gaps to treat as active refactor targets:
 
 - the canonical local entrypoint is already defined by this document as `python scripts/run_pipeline.py --datasets-root datasets --run-config configs/run_conf.yaml`; if the current repo does not yet provide that behavior cleanly, create or adapt a thin entrypoint to do so rather than introducing more parallel wrappers;
-- the current config surface still centers on `configs/datasets.batch.yaml` plus legacy sample configs, not yet the target `dataset_template.yaml` plus `run_conf.yaml` split;
+- the target `configs/dataset_template.yaml` plus `configs/run_conf.yaml` split now exists as scaffolding, but the canonical execution path still centers on legacy sample and batch configs until the single-entrypoint migration is complete;
 - persistent `data/raw/`, `data/staged/`, and `data/processed/` trees are still used in the live implementation rather than a fully cache-policy-driven disposable storage model;
 - dataset-scoped `results/<dataset_id>/tables/` and `plots/` are already in use, but `results/<dataset_id>/meta/` and `results/<dataset_id>/logs/` are not yet first-class persisted outputs;
 - runtime visibility currently appears mainly in terminal progress and elapsed-time output; persisted logs, run manifests, and resolved dataset snapshots are not yet fully implemented;

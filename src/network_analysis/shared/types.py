@@ -25,6 +25,14 @@ class ByteBasis(StrEnum):
     CAPTURED_LEN = "captured_len"
 
 
+class CachePolicy(StrEnum):
+    """Cache retention policies for the active architecture."""
+
+    NONE = "none"
+    MINIMAL = "minimal"
+    DEBUG = "debug"
+
+
 class CaptureFormat(StrEnum):
     """Packet capture formats supported by the MVP."""
 

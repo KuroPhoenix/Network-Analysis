@@ -1,0 +1,30 @@
+input:
+  datasets_root: ../datasets
+
+output:
+  results_root: ../results
+
+methodology:
+  flow_key_fields:
+    - src_ip
+    - dst_ip
+    - src_port
+    - dst_port
+    - protocol
+  inactivity_timeout_seconds: 15
+  size_basis: packets
+  byte_basis: captured_len
+
+sampling:
+  rates:
+    - 2
+    - 10
+    - 100
+  method: systematic
+
+runtime:
+  plotting_mode: minimal
+  cache_policy: minimal
+  workers: 1
+  logging:
+    level: INFO
