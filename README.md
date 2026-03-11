@@ -118,7 +118,11 @@ pip install -r requirements.txt
 
 This repository uses a `src/` layout. Package-internal imports therefore use relative imports or `network_analysis...` imports, not `src.network_analysis...`. `pyrightconfig.json` points static analysis tools at `src/`, and the repository entrypoints under `scripts/` add `src/` automatically for local execution without requiring an editable install.
 
-One tiny local example:
+The commands below describe the current frozen-MVP command surface that still exists in the repository today.
+They are not the final post-MVP target interface described in [docs/hot/pipeline-v2.md](docs/hot/pipeline-v2.md).
+As v2 refactors land, legacy commands and config files should be refined, clearly marked as legacy, or removed rather than kept as competing interfaces.
+
+One tiny local example from the current MVP interface:
 
 ```bash
 python scripts/create_demo_capture.py --overwrite
@@ -129,7 +133,7 @@ That flow writes the demo capture under `data/raw/demo_trace/`, then runs the lo
 
 ## Batch Dataset Folders
 
-If you want one reusable config that scans `datasets/` automatically, use:
+If you want one reusable config that scans `datasets/` automatically with the current frozen-MVP batch wrapper, use:
 
 ```bash
 python scripts/run_dataset_batches.py --config configs/datasets.batch.yaml plan

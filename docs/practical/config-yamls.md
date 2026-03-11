@@ -1,6 +1,8 @@
 # Config YAML Reference
 
-This document explains the YAML files used to run the local MVP pipeline.
+This document explains the YAML files used by the current frozen-MVP command surface.
+It documents the current implementation interface, not the target post-MVP config model described in [docs/hot/pipeline-v2.md](../hot/pipeline-v2.md).
+When the v2 config migration lands, this document should be updated or retired rather than expanded in parallel with a competing config contract.
 
 It covers:
 
@@ -12,9 +14,9 @@ It covers:
 
 The current example config files are:
 
-- [configs/pipeline.sample.yaml](/mnt/c/Users/kurop/OneDrive/Desktop/University/NetworkAnalysis/configs/pipeline.sample.yaml)
-- [configs/demo.pipeline.yaml](/mnt/c/Users/kurop/OneDrive/Desktop/University/NetworkAnalysis/configs/demo.pipeline.yaml)
-- [configs/datasets.batch.yaml](/mnt/c/Users/kurop/OneDrive/Desktop/University/NetworkAnalysis/configs/datasets.batch.yaml)
+- [configs/pipeline.sample.yaml](../../configs/pipeline.sample.yaml)
+- [configs/demo.pipeline.yaml](../../configs/demo.pipeline.yaml)
+- [configs/datasets.batch.yaml](../../configs/datasets.batch.yaml)
 
 ## Path Resolution Rule
 
@@ -27,6 +29,8 @@ Example:
 - then the resolved path is relative to `configs/`
 
 ## Single-Dataset Pipeline Config
+
+This section describes the current frozen-MVP single-dataset config shape.
 
 Use this config type with:
 
@@ -209,6 +213,8 @@ runtime:
 
 ## Batch Dataset-Folder Config
 
+This section describes the current frozen-MVP batch config shape.
+
 Use this config type with:
 
 ```bash
@@ -344,8 +350,8 @@ runtime:
 ## Where to Look in Code
 
 - single-dataset config loader:
-  - [config.py](/mnt/c/Users/kurop/OneDrive/Desktop/University/NetworkAnalysis/src/network_analysis/shared/config.py)
+  - [config.py](../../src/network_analysis/shared/config.py)
 - batch config loader:
-  - [batch_config.py](/mnt/c/Users/kurop/OneDrive/Desktop/University/NetworkAnalysis/src/network_analysis/shared/batch_config.py)
+  - [batch_config.py](../../src/network_analysis/shared/batch_config.py)
 - batch execution behavior:
-  - [batch_runner.py](/mnt/c/Users/kurop/OneDrive/Desktop/University/NetworkAnalysis/src/network_analysis/batch_runner.py)
+  - [batch_runner.py](../../src/network_analysis/batch_runner.py)
