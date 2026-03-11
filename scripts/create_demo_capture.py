@@ -1,4 +1,4 @@
-"""Create a deterministic tiny full-trace PCAP for local MVP validation."""
+"""Create a deterministic tiny full-trace PCAP for active dataset-root validation."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ except ImportError as exc:  # pragma: no cover - depends on local environment
     ) from exc
 
 
-DEFAULT_OUTPUT = Path("data/raw/demo_trace/demo_trace.pcap")
+DEFAULT_OUTPUT = Path("datasets/demo_root/demo_trace/demo_trace.pcap")
 BASE_TIMESTAMP = 1_700_000_000.0
 
 
@@ -49,13 +49,13 @@ def build_parser() -> argparse.ArgumentParser:
     """Create the CLI parser."""
 
     parser = argparse.ArgumentParser(
-        description="Generate a deterministic tiny full-trace PCAP for the MVP demo pipeline.",
+        description="Generate a deterministic tiny full-trace PCAP for the active demo pipeline.",
     )
     parser.add_argument(
         "--output",
         type=Path,
         default=DEFAULT_OUTPUT,
-        help="PCAP output path. Defaults to data/raw/demo_trace/demo_trace.pcap.",
+        help="PCAP output path. Defaults to datasets/demo_root/demo_trace/demo_trace.pcap.",
     )
     parser.add_argument(
         "--overwrite",

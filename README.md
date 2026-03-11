@@ -133,39 +133,14 @@ python scripts/run_pipeline.py --run-config configs/run_conf.yaml --datasets-roo
 
 The active entrypoint writes dataset-scoped metric outputs under `results/<dataset>/tables/`, runtime provenance under `results/<dataset>/meta/` and `results/<dataset>/logs/`, and uses hidden cache roots under `.cache/network_analysis/<policy>/` for staged and processed intermediates.
 
-The older frozen-MVP config and batch commands still exist as compatibility surfaces while the v2 migration continues.
-
-One tiny local example from the legacy MVP interface:
+One tiny local example:
 
 ```bash
 python scripts/create_demo_capture.py --overwrite
-python scripts/run_pipeline.py --config configs/demo.pipeline.yaml run
+python scripts/run_pipeline.py --run-config configs/run_conf.yaml --datasets-root datasets/demo_root
 ```
 
-That flow writes the demo capture under `data/raw/demo_trace/`, then runs the local pipeline through metric computation and lightweight plotting.
-
-## Batch Dataset Folders
-
-If you still need the legacy frozen-MVP batch wrapper, use:
-
-```bash
-python scripts/run_dataset_batches.py --config configs/datasets.batch.yaml plan
-python scripts/run_dataset_batches.py --config configs/datasets.batch.yaml run
-```
-
-The batch runner treats each immediate subfolder under the configured `datasets_root` as one dataset run and processes the direct child capture files matched by `*.pcap*` together as one baseline/sampling experiment.
-
-Its metric outputs are dataset-scoped:
-
-```text
-results/
-  bras/
-    tables/
-  onu/
-    tables/
-```
-
-The current plotting module still writes under a dataset-specific leaf inside each dataset plot root, so full plot-path convergence remains a follow-up refactor.
+That flow writes the demo capture under `datasets/demo_root/demo_trace/`, then runs the canonical dataset-root pipeline through metric computation.
 
 ## Dataset Expectations
 

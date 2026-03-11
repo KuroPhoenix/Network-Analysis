@@ -1,4 +1,4 @@
-"""Shared test fixtures for the current MVP skeleton."""
+"""Shared test fixtures for internal bridge-config tests."""
 
 from pathlib import Path
 import sys
@@ -14,7 +14,7 @@ if str(SRC_ROOT) not in sys.path:
 
 @pytest.fixture()
 def sample_config_path(tmp_path: Path) -> Path:
-    """Create a minimal valid config file for CLI and config tests."""
+    """Create a minimal valid internal bridge config file for unit tests."""
 
     config_path = tmp_path / "pipeline.yaml"
     config_path.write_text(
@@ -34,47 +34,6 @@ sampling:
     - 10
     - 100
   method: systematic
-""".strip()
-        + "\n",
-        encoding="utf-8",
-    )
-    return config_path
-
-
-@pytest.fixture()
-def sample_batch_config_path(tmp_path: Path) -> Path:
-    """Create a minimal valid batch config and dataset tree."""
-
-    datasets_root = tmp_path / "datasets"
-    bras_dir = datasets_root / "Anonymized_bras_dataset" / "Anonymized_bras_dataset"
-    onu_dir = datasets_root / "Anonymized_onu_dataset" / "Anonymized_onu_dataset"
-    bras_dir.mkdir(parents=True)
-    onu_dir.mkdir(parents=True)
-
-    (bras_dir / "BRAS_capture_game_1.pcap").write_bytes(b"")
-    (bras_dir / "BRAS_capture_video_2.pcap").write_bytes(b"")
-    (onu_dir / "misc_trace.pcapng").write_bytes(b"")
-    (onu_dir / "notes.txt").write_text("ignore me\n", encoding="utf-8")
-
-    config_path = tmp_path / "batch.yaml"
-    config_path.write_text(
-        """
-discovery:
-  datasets_root: ./datasets
-
-output:
-  staged_root: ./data/staged
-  processed_root: ./data/processed
-  results_root: ./results
-
-sampling:
-  rates:
-    - 2
-    - 5
-  method: systematic
-
-runtime:
-  enable_plots: true
 """.strip()
         + "\n",
         encoding="utf-8",

@@ -1,4 +1,4 @@
-"""YAML-backed configuration loading and validation for the MVP skeleton."""
+"""Internal bridge configuration objects for the executable module pipeline."""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -113,7 +113,7 @@ class PipelineConfig:
 
 
 def load_pipeline_config(path: str | Path) -> PipelineConfig:
-    """Load and validate a pipeline configuration file."""
+    """Load and validate an internal bridge pipeline configuration file."""
 
     config_path = Path(path).expanduser().resolve()
     raw_data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}

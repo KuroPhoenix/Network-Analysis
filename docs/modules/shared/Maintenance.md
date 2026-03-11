@@ -5,11 +5,12 @@
 - Keep methodology-sensitive defaults visible here rather than scattering them across pipeline modules.
 - Prefer explicit enums, dataclasses, or similarly inspectable structures over hidden constants.
 - Keep artifact-path conventions centralised here so module code does not drift into hard-coded filesystem assumptions.
+- Treat the active config pair as the only public config surface.
 
 ## Maintenance guidelines
 
 - Update this module first when adding a new module-level config parameter or shared schema.
-- Keep the legacy config loaders and the v2 config loaders aligned on methodology defaults until the canonical entrypoint migration is complete.
+- Keep the active config loaders and the internal bridge config structures aligned on methodology defaults.
 - Review downstream modules after any change to timeouts, flow keys, size basis labels, byte basis, or output-path conventions.
 - Review ingest and packet extraction together whenever provenance-order schema fields or canonical timestamp fields change.
 - Re-check schema columns against real module outputs whenever a previously placeholder module becomes executable.
@@ -23,4 +24,4 @@
 
 - Add stricter schema validation once later flow, sampling, and metric artefacts exist.
 - Add fixtures that validate config normalisation, byte-basis handling, and artifact-path resolution together.
-- Replace the remaining legacy config loaders only after the v2 entrypoint can execute one tiny end-to-end run honestly.
+- Remove the internal bridge-only YAML loader once later refactor slices stop needing it for module-level test scaffolding.

@@ -7,7 +7,7 @@ The `runtime` module is the thin active-architecture orchestration layer that re
 It does not implement methodology, metrics, flow reconstruction, or packet parsing logic. It only:
 
 - loads the active v2 dataset-run plan;
-- adapts each resolved dataset run into the current executable `PipelineConfig`;
+- adapts each resolved dataset run into the current executable `PipelineConfig` bridge;
 - runs the existing thin driver once per dataset; and
 - emits lightweight dataset-level progress and elapsed-time feedback.
 
@@ -40,13 +40,13 @@ The module does not write packet, flow, metric, or plot artefacts directly. Down
   - the flow key
   - sampling-rate normalization
   - packet-vs-byte labelling
-- The runtime currently uses a compatibility adapter:
+- The runtime currently uses an internal bridge adapter:
   - `results/<dataset>/tables` and `results/<dataset>/plots` are passed through to the current modules
   - active cache roots are resolved under `.cache/network_analysis/<policy>/...`
   - `none` removes dataset-scoped staged and processed cache directories after a successful run
   - `minimal` removes only the staged cache after a successful run and keeps processed intermediates
   - `debug` keeps both staged and processed cache artefacts for inspection
-- Because plotting still uses the legacy artifact helper, the final SVG path currently includes one extra dataset-id leaf under the dataset plot root.
+- Because plotting still uses the current artifact helper, the final SVG path currently includes one extra dataset-id leaf under the dataset plot root.
 - Plot execution is still controlled by the current boolean module gate. The runtime maps the active `plotting_mode` string onto the existing `runtime.enable_plots` flag without changing plotting semantics.
 - The runtime now persists resolved dataset snapshots, run-config snapshots, a run manifest, stage timings, and a plain-text run log for the active entrypoint.
 
@@ -61,6 +61,5 @@ The module does not write packet, flow, metric, or plot artefacts directly. Down
 ## Assumptions and limitations
 
 - The module is still a bridge layer. It preserves current runnable behaviour while the rest of the repo converges on the v2 architecture.
-- Cache policy is currently enforced only for the active entrypoint. Legacy compatibility paths still use the older persistent `data/` trees.
+- Cache policy is enforced on the canonical public entrypoint, but the runtime still maps onto internal bridge config objects for the underlying modules.
 - Failed runs keep their cache directories for inspection; the cleanup rules above apply only after successful runs.
-- Legacy CLI compatibility paths still exist alongside this module and should be retired in a later slice.

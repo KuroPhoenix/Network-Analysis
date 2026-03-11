@@ -134,24 +134,12 @@ The current repository is directionally aligned with this active architecture, b
 
 Known gaps to treat as active refactor targets:
 
-- the canonical local entrypoint now exists through `python scripts/run_pipeline.py --datasets-root datasets --run-config configs/run_conf.yaml`, but the repo still carries legacy CLI compatibility paths that should be retired or reduced later;
-- the target `configs/dataset_template.yaml` plus `configs/run_conf.yaml` split now exists and is wired into the canonical entrypoint, but the legacy sample and batch configs still remain in the repo as compatibility interfaces;
-- the active entrypoint now resolves staged and processed artefacts under `.cache/network_analysis/<policy>/...`, but the remaining legacy compatibility surfaces still rely on persistent `data/raw/`, `data/staged/`, and `data/processed/` trees;
-- the active entrypoint now persists `results/<dataset_id>/meta/` and `results/<dataset_id>/logs/`, but the legacy compatibility surfaces do not yet emit the same runtime artefacts;
-- runtime visibility is now persisted for the active entrypoint through resolved-config snapshots, run manifests, stage timings, and logs, but that observability layer is not yet unified across every remaining compatibility path;
+- the public entry surface now matches the active architecture, but module execution still passes through an internal `PipelineConfig` bridge and a boolean plotting gate that should eventually be flattened into a more native v2 runtime model;
 - plotting is still partial: the current implementation renders the flow-detection-rate figure, but not the full plot family described later in this document;
 - the Python package layout still uses `modules/`, `pipeline/`, and `shared/` boundaries rather than the flatter target layout shown in this document.
 
 These gaps are implementation gaps, not methodology gaps.
 Until they are closed, preserve the current validated behaviour while moving the codebase toward the target architecture incrementally.
-
-### Legacy replacement rule
-
-When a legacy wrapper, config surface, or user-facing document is superseded by this active architecture, update, retire, or clearly mark it as legacy in the same change set.
-
-Do not leave frozen-MVP and target-v2 interfaces presented as equally current without explicit labelling.
-
----
 
 ## Input model
 

@@ -1,4 +1,4 @@
-"""End-to-end CLI validation for the local MVP pipeline."""
+"""End-to-end validation for the executable module bridge."""
 
 from __future__ import annotations
 
@@ -8,23 +8,20 @@ import socket
 import dpkt
 import polars as pl
 
-from network_analysis.cli import main
 from network_analysis.pipeline.driver import ModuleRuntimeEvent, run_pipeline
 from network_analysis.shared.artifacts import build_artifact_paths
 from network_analysis.shared.config import load_pipeline_config
 
 
-def test_cli_run_executes_end_to_end_pipeline_without_plots(tmp_path: Path) -> None:
+def test_run_pipeline_executes_end_to_end_pipeline_without_plots(tmp_path: Path) -> None:
     raw_dir = tmp_path / "raw"
     raw_dir.mkdir()
     capture_path = raw_dir / "fixture_trace.pcap"
     _write_fixture_pcap(capture_path)
 
     config_path = _write_config(tmp_path, raw_dir)
-    exit_code = main(["--config", str(config_path), "run"])
-    assert exit_code == 0
-
     config = load_pipeline_config(config_path)
+    run_pipeline(config)
     artifact_paths = build_artifact_paths(config)
     assert artifact_paths.dataset_registry.exists()
     assert artifact_paths.ingest_manifest.exists()

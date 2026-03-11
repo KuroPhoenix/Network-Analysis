@@ -1,4 +1,4 @@
-"""Local wrapper for the MVP CLI without requiring installation."""
+"""Local wrapper for the canonical active-architecture CLI without requiring installation."""
 
 from pathlib import Path
 import sys

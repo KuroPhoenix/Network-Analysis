@@ -43,7 +43,7 @@ def plan_active_runs(
     run_config: RunConfig,
     dataset_template: DatasetTemplateConfig,
 ) -> tuple[PlannedDatasetRun, ...]:
-    """Resolve dataset-root execution into legacy-compatible pipeline configs."""
+    """Resolve dataset-root execution into executable pipeline configs."""
 
     resolved_runs = resolve_dataset_runs(run_config, dataset_template)
     cache_layout = _resolve_cache_layout(run_config)

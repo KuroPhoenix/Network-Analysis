@@ -6,7 +6,7 @@
 
 1. Purpose of modification: prevent the metrics stage from exhausting memory on large full-trace datasets during batch execution.
 2. What changed: replaced Python-side sampled-packet matching and whole-run flow-row accumulation with a Polars as-of join plus per-flow aggregation, normalized join-key dtypes between sampled packets and baseline flows, and wrote per-rate temporary Parquet parts before assembling the final flow-metrics table.
-3. Impact on other pipeline modules: output schemas and metric formulas remain unchanged, but the metrics stage now scales better on large datasets such as `bras` and keeps the batch runner from terminating at the start of metric computation.
+3. Impact on other pipeline modules: output schemas and metric formulas remain unchanged, but the metrics stage now scales better on large datasets such as `bras` and keeps the canonical dataset-root runtime from terminating at the start of metric computation.
 4. Required maintenance or follow-up updates: if future datasets push memory limits further, profile the per-rate join and consider additional chunking or lazy sinks before changing any metric semantics.
 
 ## 2026-03-10

@@ -1,4 +1,4 @@
-"""Tests for the legacy and active CLI surfaces."""
+"""Tests for the active CLI surface."""
 
 import json
 from pathlib import Path
@@ -23,26 +23,6 @@ def test_module_catalog_uses_named_modules() -> None:
         "metrics",
         "plotting",
     ]
-
-
-def test_cli_validate_config_reports_defaults(sample_config_path: Path, capsys) -> None:
-    exit_code = main(["--config", str(sample_config_path), "validate-config"])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert "Dataset: fixture_trace" in captured.out
-    assert "Inactivity timeout: 15s" in captured.out
-    assert "Sampling rates: 1:1, 1:10, 1:100" in captured.out
-
-
-def test_cli_plan_prints_stage_sequence(sample_config_path: Path, capsys) -> None:
-    exit_code = main(["--config", str(sample_config_path), "plan"])
-    captured = capsys.readouterr()
-
-    assert exit_code == 0
-    assert "dataset_registry" in captured.out
-    assert "packet_extraction" in captured.out
-    assert "results/tables/fixture_trace_metric_summary.parquet" in captured.out
 
 
 def test_active_cli_validate_config_reports_resolved_defaults(tmp_path: Path, capsys) -> None:
@@ -93,6 +73,52 @@ sampling:
     assert "Run config:" in captured.out
     assert "Inactivity timeout: 15s" in captured.out
     assert "Sampling rates: 1:1, 1:10" in captured.out
+
+
+def test_active_cli_plan_prints_dataset_outputs(tmp_path: Path, capsys) -> None:
+    datasets_root = tmp_path / "datasets"
+    dataset_dir = datasets_root / "fixture_trace"
+    dataset_dir.mkdir(parents=True)
+    _write_fixture_pcap(dataset_dir / "fixture_trace.pcap")
+
+    dataset_template_path = tmp_path / "dataset_template.yaml"
+    dataset_template_path.write_text(
+        """
+discovery:
+  dataset_glob: "*"
+  raw_glob: "*.pcap"
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    run_config_path = tmp_path / "run_conf.yaml"
+    run_config_path.write_text(
+        """
+input:
+  datasets_root: ./datasets
+
+output:
+  results_root: ./results
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "--run-config",
+            str(run_config_path),
+            "--dataset-template",
+            str(dataset_template_path),
+            "--plan",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Active pipeline plan" in captured.out
+    assert "fixture_trace_metric_summary.parquet" in captured.out
+    assert ".cache/network_analysis/minimal" in captured.out
 
 
 def test_active_cli_run_executes_end_to_end_pipeline(tmp_path: Path) -> None:

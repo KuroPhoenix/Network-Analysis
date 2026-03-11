@@ -2,14 +2,14 @@
 
 ## Purpose
 
-The `shared` module is the common definitions layer for the local-first pipeline MVP. It centralises configuration structures, constants, enumerations, type hints, schema contracts, and dataset artifact paths that every pipeline module must use.
+The `shared` module is the common definitions layer for the active local-first pipeline. It centralises configuration structures, constants, enumerations, type hints, schema contracts, and dataset artifact paths that every pipeline module must use.
 
 ## Current scope
 
-This module now holds the shared config, schema, type, constant, and artifact-path logic for both the executable MVP path and the early v2 scaffolding. It does not parse packet captures or compute flow metrics itself, but later modules now depend on it for:
+This module now holds the shared config, schema, type, constant, and artifact-path logic for the active architecture plus the internal executable bridge layer. It does not parse packet captures or compute flow metrics itself, but later modules now depend on it for:
 
-- legacy single-dataset and batch config parsing;
 - active-architecture `dataset_template.yaml` and `run_conf.yaml` loading;
+- internal executable `PipelineConfig` objects used by the runtime bridge and module-level tests;
 - resolved dataset-run discovery under a dataset root;
 - resolved dataset artifact paths for staged, processed, and result outputs;
 - the explicit byte-basis contract and the documented baseline-flow, sampled-packet, sampled-flow, sampling-manifest, and metric-table schemas.
@@ -23,7 +23,7 @@ This module now holds the shared config, schema, type, constant, and artifact-pa
 
 - Normalised configuration objects.
 - Active-architecture dataset template and run-config objects.
-- Resolved dataset-scoped run objects for the v2 entrypoint migration.
+- Resolved dataset-scoped run objects for the active entrypoint.
 - Shared constants and type aliases.
 - Schema contracts for module inputs and outputs.
 - Resolved dataset artifact paths for staged, processed, and result outputs.
@@ -50,7 +50,8 @@ This module now holds the shared config, schema, type, constant, and artifact-pa
 - The shared layer intentionally does not hide methodology decisions behind driver defaults; later modules still need to enforce their own runtime validation.
 - Dataset-specific acceptance metadata rules are still incomplete; the shared layer only carries the fields needed for reproducible local execution.
 - Schema definitions assume the default directional 5-tuple unless a config override is made and propagated deliberately.
-- The v2 config layer is additive scaffolding in the current repo state; it is not yet the canonical runtime entrypoint.
+- The public config surface is now the active `dataset_template.yaml` plus `run_conf.yaml` pair.
+- The older `PipelineConfig` YAML loader remains only as an internal bridge for executable-module tests and maintenance tasks.
 
 ## Upstream and downstream contracts
 
