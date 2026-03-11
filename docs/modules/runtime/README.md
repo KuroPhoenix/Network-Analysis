@@ -46,7 +46,6 @@ The module does not write packet, flow, metric, or plot artefacts directly. Down
   - `none` removes dataset-scoped staged and processed cache directories after a successful run
   - `minimal` removes only the staged cache after a successful run and keeps processed intermediates
   - `debug` keeps both staged and processed cache artefacts for inspection
-- Because plotting still uses the current artifact helper, the final SVG path currently includes one extra dataset-id leaf under the dataset plot root.
 - Plot execution is still controlled by the current boolean module gate. The runtime maps the active `plotting_mode` string onto the existing `runtime.enable_plots` flag without changing plotting semantics.
 - The runtime now persists resolved dataset snapshots, run-config snapshots, a run manifest, stage timings, and a plain-text run log for the active entrypoint.
 

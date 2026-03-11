@@ -126,7 +126,7 @@ Current top-level sections:
 - `minimal` removes only the staged cache after a successful run and keeps processed intermediates
 - `debug` keeps both staged and processed cache artefacts for inspection
 - the active entrypoint persists `results/<dataset>/meta/` and `results/<dataset>/logs/`
-- the current plotting module still writes below a dataset-specific leaf inside each dataset plot root
+- plotting outputs are written directly under `results/<dataset>/plots/`
 
 ## Output layout
 
@@ -144,8 +144,7 @@ results/
       <dataset_id>_metric_summary.parquet
       <dataset_id>_flow_metrics.parquet
     plots/
-      <dataset_id>/
-        ...
+      ...
     logs/
       run.log
 ```

@@ -135,7 +135,6 @@ The current repository is directionally aligned with this active architecture, b
 Known gaps to treat as active refactor targets:
 
 - the public entry surface now matches the active architecture, but module execution still passes through an internal `PipelineConfig` bridge and a boolean plotting gate that should eventually be flattened into a more native v2 runtime model;
-- plotting is still partial: the current implementation renders the flow-detection-rate figure, but not the full plot family described later in this document;
 - the Python package layout still uses `modules/`, `pipeline/`, and `shared/` boundaries rather than the flatter target layout shown in this document.
 
 These gaps are implementation gaps, not methodology gaps.
@@ -706,7 +705,7 @@ Produce reproducible visual outputs from computed metrics.
 * flow byte size estimation under different sampling rates (1:1 inclusive)
 * flow duration under different sampling rates (1:1 inclusive)
 * flow packet sending rate under different sampling rates (1:1 inclusive)
-* flow byte size sending rate under different sampling rates (1:1 inclusive)
+* flow byte sending rate under different sampling rates (1:1 inclusive)
 
 ### Inputs
 

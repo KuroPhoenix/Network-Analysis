@@ -25,6 +25,7 @@ class DatasetArtifactPaths:
     sampling_manifest: Path
     metric_summary: Path
     flow_metrics: Path
+    plotting_summary: Path
     plots_dir: Path
 
 
@@ -34,7 +35,7 @@ def build_artifact_paths(config: PipelineConfig) -> DatasetArtifactPaths:
     dataset_id = config.dataset.dataset_id
     staged_dir = config.output.staged_dir / dataset_id
     processed_dir = config.output.processed_dir / dataset_id
-    plots_dir = config.output.results_plots_dir / dataset_id
+    plots_dir = config.output.results_plots_dir
 
     return DatasetArtifactPaths(
         dataset_id=dataset_id,
@@ -52,5 +53,6 @@ def build_artifact_paths(config: PipelineConfig) -> DatasetArtifactPaths:
         sampling_manifest=processed_dir / "sampling_runs.parquet",
         metric_summary=config.output.results_tables_dir / f"{dataset_id}_metric_summary.parquet",
         flow_metrics=config.output.results_tables_dir / f"{dataset_id}_flow_metrics.parquet",
+        plotting_summary=plots_dir / f"{dataset_id}_plotting_summary.parquet",
         plots_dir=plots_dir,
     )
