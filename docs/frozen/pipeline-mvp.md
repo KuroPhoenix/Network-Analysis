@@ -172,7 +172,7 @@ The MVP must support these flow-level metrics:
 - **Flow Packet size** = total packet count observed in the full trace for the reconstructed flow
 - **Flow duration** = `last_packet_timestamp - first_packet_timestamp`
 - **Flow byte sending rate** = `flow byte size / flow duration`
-- **Flow byte sending rate** = `flow packet size / flow duration`
+- **Flow packet sending rate** = `flow packet size / flow duration`
 - **Flow detection rate** = `100%`
 
 
@@ -185,14 +185,14 @@ For each packet's byte size:
 ```
 - **Sampled flow duration** = `last_sampled_packet_timestamp - first_sampled_packet_timestamp` within the sampled reconstruction only
 - **Sampled flow packet sending rate** = `sampled flow packet size estimate / sampled flow duration`
-- **Sampled flow size sending rate** = `sampled flow byte size estimate / sampled flow duration`
+- **Sampled flow byte sending rate** = `sampled flow byte size estimate / sampled flow duration`
 - **Flow detection rate** = `detected baseline flows / total baseline flows`
 
 ### Derived distortion metrics
 Use these definitions in the MVP:
 
-- **Flow packet size overestimation factor** = `sampled flow size estimate / actual baseline flow size`
-- **Flow byte size overestimation factor** = `sampled flow size estimate / actual baseline flow size`
+- **Flow packet size overestimation factor** = `sampled flow packet size estimate / actual baseline flow packet size`
+- **Flow byte size overestimation factor** = `sampled flow byte size estimate / actual baseline flow byte size`
 - **Flow duration underestimation factor** = `sampled flow duration / actual baseline flow duration`
 - **Flow byte sending rate overestimation factor** = `flow byte size overestimation factor / flow duration underestimation factor`
 - **Flow packet sending rate overestimation factor** = `flow packet size overestimation factor / flow duration underestimation factor`
