@@ -137,8 +137,8 @@ Known gaps to treat as active refactor targets:
 - the canonical local entrypoint now exists through `python scripts/run_pipeline.py --datasets-root datasets --run-config configs/run_conf.yaml`, but the repo still carries legacy CLI compatibility paths that should be retired or reduced later;
 - the target `configs/dataset_template.yaml` plus `configs/run_conf.yaml` split now exists and is wired into the canonical entrypoint, but the legacy sample and batch configs still remain in the repo as compatibility interfaces;
 - persistent `data/raw/`, `data/staged/`, and `data/processed/` trees are still used in the live implementation rather than a fully cache-policy-driven disposable storage model;
-- dataset-scoped `results/<dataset_id>/tables/` and `plots/` are already in use, but `results/<dataset_id>/meta/` and `results/<dataset_id>/logs/` are not yet first-class persisted outputs;
-- runtime visibility currently appears mainly in terminal progress and elapsed-time output; persisted logs, run manifests, and resolved dataset snapshots are not yet fully implemented;
+- the active entrypoint now persists `results/<dataset_id>/meta/` and `results/<dataset_id>/logs/`, but the legacy compatibility surfaces do not yet emit the same runtime artefacts;
+- runtime visibility is now persisted for the active entrypoint through resolved-config snapshots, run manifests, stage timings, and logs, but that observability layer is not yet unified across every remaining compatibility path;
 - plotting is still partial: the current implementation renders the flow-detection-rate figure, but not the full plot family described later in this document;
 - the Python package layout still uses `modules/`, `pipeline/`, and `shared/` boundaries rather than the flatter target layout shown in this document.
 

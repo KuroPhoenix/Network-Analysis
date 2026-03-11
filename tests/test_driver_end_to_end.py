@@ -9,6 +9,7 @@ import dpkt
 import polars as pl
 
 from network_analysis.cli import main
+from network_analysis.pipeline.driver import ModuleRuntimeEvent, run_pipeline
 from network_analysis.shared.artifacts import build_artifact_paths
 from network_analysis.shared.config import load_pipeline_config
 
@@ -37,6 +38,37 @@ def test_cli_run_executes_end_to_end_pipeline_without_plots(tmp_path: Path) -> N
     summary_frame = pl.read_parquet(artifact_paths.metric_summary).sort(["sampling_rate", "size_basis"])
     assert summary_frame["sampling_rate"].to_list() == [1, 2, 3]
     assert summary_frame["flow_detection_rate"].to_list() == [1.0, 0.5, 1.0]
+
+
+def test_run_pipeline_emits_runtime_events_for_each_module(tmp_path: Path) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    capture_path = raw_dir / "fixture_trace.pcap"
+    _write_fixture_pcap(capture_path)
+
+    config_path = _write_config(tmp_path, raw_dir)
+    config = load_pipeline_config(config_path)
+    events: list[ModuleRuntimeEvent] = []
+
+    run_pipeline(config, observer=events.append)
+
+    assert [event.status for event in events].count("starting") == 6
+    assert [event.status for event in events].count("completed") == 6
+    assert all(event.status != "failed" for event in events)
+    assert [event.module_name for event in events if event.status == "starting"] == [
+        "dataset_registry",
+        "ingest",
+        "packet_extraction",
+        "flow_construction",
+        "sampling",
+        "metrics",
+    ]
+    assert {event.module_total for event in events} == {6}
+    assert all(event.dataset_id == "fixture_trace" for event in events)
+    assert all(
+        event.elapsed_seconds is None if event.status == "starting" else event.elapsed_seconds is not None
+        for event in events
+    )
 
 
 def _write_fixture_pcap(path: Path) -> None:

@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from datetime import datetime, timezone
+import json
 from pathlib import Path
 import sys
 from time import perf_counter
+from typing import Callable
 
-from .pipeline.driver import run_pipeline
+import yaml
+
+from .pipeline.driver import ModuleRuntimeEvent, run_pipeline
 from .shared.artifacts import build_artifact_paths
 from .shared.config import DatasetConfig, OutputConfig, PipelineConfig, RuntimeConfig
 from .shared.v2_config import DatasetTemplateConfig, ResolvedDatasetRun, RunConfig, resolve_dataset_runs
@@ -93,17 +98,42 @@ def run_active_runs(
     for run_index, planned_run in enumerate(planned_runs, start=1):
         dataset_start = perf_counter()
         dataset_id = planned_run.resolved_run.dataset_id
+        run_started_at = datetime.now(timezone.utc)
+        run_id = f"{dataset_id}-{run_started_at.strftime('%Y%m%dT%H%M%SZ')}"
+        _prepare_runtime_artifacts(planned_run, run_config=run_config)
+        log_path = planned_run.resolved_run.logs_dir / "run.log"
+        stage_timings: dict[str, float] = {}
         _emit_runtime_event(
             f"[active] [{run_index}/{len(planned_runs)}] "
             f"{dataset_id} starting with {len(planned_run.resolved_run.capture_files)} capture files"
         )
+        _append_log(
+            log_path,
+            f"[active] [{run_index}/{len(planned_runs)}] "
+            f"{dataset_id} starting with {len(planned_run.resolved_run.capture_files)} capture files",
+        )
+        observer = _build_runtime_observer(log_path=log_path, stage_timings=stage_timings)
         try:
-            run_pipeline(planned_run.pipeline_config, dry_run=False)
-        except BaseException:
+            run_pipeline(planned_run.pipeline_config, dry_run=False, observer=observer)
+        except BaseException as exc:
             dataset_elapsed = perf_counter() - dataset_start
             _emit_runtime_event(
                 f"[active] [{run_index}/{len(planned_runs)}] "
                 f"{dataset_id} failed after {_format_elapsed(dataset_elapsed)}"
+            )
+            _append_log(
+                log_path,
+                f"[active] [{run_index}/{len(planned_runs)}] "
+                f"{dataset_id} failed after {_format_elapsed(dataset_elapsed)}",
+            )
+            _write_runtime_manifest(
+                planned_run,
+                run_id=run_id,
+                status="failed",
+                started_at=run_started_at,
+                finished_at=datetime.now(timezone.utc),
+                stage_timings=stage_timings,
+                error_message=str(exc),
             )
             raise
 
@@ -111,6 +141,20 @@ def run_active_runs(
         _emit_runtime_event(
             f"[active] [{run_index}/{len(planned_runs)}] "
             f"{dataset_id} completed in {_format_elapsed(dataset_elapsed)}"
+        )
+        _append_log(
+            log_path,
+            f"[active] [{run_index}/{len(planned_runs)}] "
+            f"{dataset_id} completed in {_format_elapsed(dataset_elapsed)}",
+        )
+        _write_runtime_manifest(
+            planned_run,
+            run_id=run_id,
+            status="completed",
+            started_at=run_started_at,
+            finished_at=datetime.now(timezone.utc),
+            stage_timings=stage_timings,
+            error_message=None,
         )
 
     batch_elapsed = perf_counter() - batch_start
@@ -168,3 +212,119 @@ def _format_elapsed(seconds: float) -> str:
 
     hours, remaining_minutes = divmod(int(minutes), 60)
     return f"{hours}h {remaining_minutes:02d}m {remaining_seconds:05.2f}s"
+
+
+def _prepare_runtime_artifacts(planned_run: PlannedDatasetRun, *, run_config: RunConfig) -> None:
+    planned_run.resolved_run.meta_dir.mkdir(parents=True, exist_ok=True)
+    planned_run.resolved_run.logs_dir.mkdir(parents=True, exist_ok=True)
+
+    resolved_dataset_snapshot = {
+        "dataset_id": planned_run.resolved_run.dataset_id,
+        "dataset_dir": str(planned_run.resolved_run.dataset_dir),
+        "raw_glob": planned_run.resolved_run.raw_glob,
+        "capture_files": [str(path) for path in planned_run.resolved_run.capture_files],
+        "results_root": str(planned_run.resolved_run.results_root),
+    }
+    (planned_run.resolved_run.meta_dir / "resolved_dataset.yaml").write_text(
+        yaml.safe_dump(resolved_dataset_snapshot, sort_keys=False),
+        encoding="utf-8",
+    )
+
+    run_config_snapshot = {
+        "run_config_path": str(run_config.config_path),
+        "datasets_root": str(run_config.paths.datasets_root),
+        "results_root": str(run_config.paths.results_root),
+        "methodology": {
+            "flow_key_fields": list(run_config.methodology.flow_key_fields),
+            "inactivity_timeout_seconds": run_config.methodology.inactivity_timeout_seconds,
+            "size_basis": run_config.methodology.size_basis.value,
+            "byte_basis": run_config.methodology.byte_basis.value,
+        },
+        "sampling": {
+            "rates": list(run_config.sampling.rates),
+            "normalized_rates": list(run_config.sampling.normalized_rates()),
+            "method": run_config.sampling.method.value,
+            "random_seed": run_config.sampling.random_seed,
+        },
+        "runtime": {
+            "plotting_mode": run_config.runtime.plotting_mode,
+            "cache_policy": run_config.runtime.cache_policy.value,
+            "workers": run_config.runtime.workers,
+            "logging": {"level": run_config.runtime.logging.level},
+        },
+    }
+    (planned_run.resolved_run.meta_dir / "run_config.yaml").write_text(
+        yaml.safe_dump(run_config_snapshot, sort_keys=False),
+        encoding="utf-8",
+    )
+
+
+def _build_runtime_observer(
+    *,
+    log_path: Path,
+    stage_timings: dict[str, float],
+) -> Callable[[ModuleRuntimeEvent], None]:
+    def observer(event: ModuleRuntimeEvent) -> None:
+        if event.status == "starting":
+            message = (
+                f"[dataset {event.dataset_id}] [{event.module_index}/{event.module_total}] "
+                f"{event.module_name} starting"
+            )
+        else:
+            elapsed = _format_elapsed(event.elapsed_seconds or 0.0)
+            message = (
+                f"[dataset {event.dataset_id}] [{event.module_index}/{event.module_total}] "
+                f"{event.module_name} {event.status} in {elapsed}"
+            )
+            stage_timings[event.module_name] = event.elapsed_seconds or 0.0
+
+        _emit_runtime_event(message)
+        _append_log(log_path, message)
+
+    return observer
+
+
+def _write_runtime_manifest(
+    planned_run: PlannedDatasetRun,
+    *,
+    run_id: str,
+    status: str,
+    started_at: datetime,
+    finished_at: datetime,
+    stage_timings: dict[str, float],
+    error_message: str | None,
+) -> None:
+    artifact_paths = build_artifact_paths(planned_run.pipeline_config)
+    stage_timings_path = planned_run.resolved_run.meta_dir / "stage_timings.json"
+    stage_timings_path.write_text(
+        json.dumps(stage_timings, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    manifest = {
+        "run_id": run_id,
+        "dataset_id": planned_run.resolved_run.dataset_id,
+        "status": status,
+        "started_at": started_at.isoformat(),
+        "finished_at": finished_at.isoformat(),
+        "capture_files": [str(path) for path in planned_run.resolved_run.capture_files],
+        "stage_timings_path": str(stage_timings_path),
+        "outputs": {
+            "meta_dir": str(planned_run.resolved_run.meta_dir),
+            "tables_dir": str(planned_run.resolved_run.tables_dir),
+            "plots_dir": str(artifact_paths.plots_dir),
+            "logs_dir": str(planned_run.resolved_run.logs_dir),
+            "metric_summary": str(artifact_paths.metric_summary),
+            "flow_metrics": str(artifact_paths.flow_metrics),
+        },
+        "error_message": error_message,
+    }
+    (planned_run.resolved_run.meta_dir / "run_manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _append_log(log_path: Path, message: str) -> None:
+    with log_path.open("a", encoding="utf-8") as handle:
+        handle.write(message + "\n")

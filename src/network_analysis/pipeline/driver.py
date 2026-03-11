@@ -1,6 +1,8 @@
 """Thin driver that composes the pipeline modules."""
 
 from dataclasses import dataclass
+from time import perf_counter
+from typing import Callable
 
 from ..modules import (
     dataset_registry,
@@ -31,6 +33,18 @@ class PlannedModule:
 
     contract: ModuleContract
     resolved_outputs: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ModuleRuntimeEvent:
+    """A timing event emitted around one module execution."""
+
+    dataset_id: str
+    module_name: str
+    module_index: int
+    module_total: int
+    status: str
+    elapsed_seconds: float | None = None
 
 
 def get_module_catalog() -> tuple[ModuleContract, ...]:
@@ -69,15 +83,60 @@ def render_pipeline_plan(config: PipelineConfig) -> str:
     return "\n".join(lines)
 
 
-def run_pipeline(config: PipelineConfig, *, dry_run: bool = False) -> tuple[PlannedModule, ...]:
+def run_pipeline(
+    config: PipelineConfig,
+    *,
+    dry_run: bool = False,
+    observer: Callable[[ModuleRuntimeEvent], None] | None = None,
+) -> tuple[PlannedModule, ...]:
     """Run or dry-run the pipeline using the pipeline modules."""
 
     planned_modules = plan_pipeline(config)
     if dry_run:
         return planned_modules
 
-    for module in _module_sequence_for_run(config):
-        module.run_module(config)
+    module_sequence = _module_sequence_for_run(config)
+    dataset_id = config.dataset.dataset_id
+    for module_index, module in enumerate(module_sequence, start=1):
+        contract = module.describe_module()
+        if observer is not None:
+            observer(
+                ModuleRuntimeEvent(
+                    dataset_id=dataset_id,
+                    module_name=contract.name,
+                    module_index=module_index,
+                    module_total=len(module_sequence),
+                    status="starting",
+                )
+            )
+        module_start = perf_counter()
+        try:
+            module.run_module(config)
+        except BaseException:
+            if observer is not None:
+                observer(
+                    ModuleRuntimeEvent(
+                        dataset_id=dataset_id,
+                        module_name=contract.name,
+                        module_index=module_index,
+                        module_total=len(module_sequence),
+                        status="failed",
+                        elapsed_seconds=perf_counter() - module_start,
+                    )
+                )
+            raise
+
+        if observer is not None:
+            observer(
+                ModuleRuntimeEvent(
+                    dataset_id=dataset_id,
+                    module_name=contract.name,
+                    module_index=module_index,
+                    module_total=len(module_sequence),
+                    status="completed",
+                    elapsed_seconds=perf_counter() - module_start,
+                )
+            )
 
     return planned_modules
 

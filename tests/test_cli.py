@@ -1,10 +1,12 @@
 """Tests for the legacy and active CLI surfaces."""
 
+import json
 from pathlib import Path
 import socket
 
 import dpkt
 import polars as pl
+import yaml
 from network_analysis.cli import main
 from network_analysis.pipeline.driver import get_module_catalog
 
@@ -144,12 +146,51 @@ runtime:
 
     metric_summary = tmp_path / "results" / "fixture_trace" / "tables" / "fixture_trace_metric_summary.parquet"
     flow_metrics = tmp_path / "results" / "fixture_trace" / "tables" / "fixture_trace_flow_metrics.parquet"
+    meta_dir = tmp_path / "results" / "fixture_trace" / "meta"
+    logs_dir = tmp_path / "results" / "fixture_trace" / "logs"
     assert metric_summary.exists()
     assert flow_metrics.exists()
+    assert (meta_dir / "resolved_dataset.yaml").exists()
+    assert (meta_dir / "run_config.yaml").exists()
+    assert (meta_dir / "run_manifest.json").exists()
+    assert (meta_dir / "stage_timings.json").exists()
+    assert (logs_dir / "run.log").exists()
 
     summary_frame = pl.read_parquet(metric_summary).sort(["sampling_rate", "size_basis"])
     assert summary_frame["sampling_rate"].to_list() == [1, 2, 3]
     assert summary_frame["flow_detection_rate"].to_list() == [1.0, 0.5, 1.0]
+
+    resolved_dataset = yaml.safe_load((meta_dir / "resolved_dataset.yaml").read_text(encoding="utf-8"))
+    run_config_snapshot = yaml.safe_load((meta_dir / "run_config.yaml").read_text(encoding="utf-8"))
+    run_manifest = json.loads((meta_dir / "run_manifest.json").read_text(encoding="utf-8"))
+    stage_timings = json.loads((meta_dir / "stage_timings.json").read_text(encoding="utf-8"))
+    run_log = (logs_dir / "run.log").read_text(encoding="utf-8")
+
+    assert resolved_dataset["dataset_id"] == "fixture_trace"
+    assert len(resolved_dataset["capture_files"]) == 1
+    assert run_config_snapshot["methodology"]["inactivity_timeout_seconds"] == 15
+    assert run_config_snapshot["methodology"]["flow_key_fields"] == [
+        "src_ip",
+        "dst_ip",
+        "src_port",
+        "dst_port",
+        "protocol",
+    ]
+    assert run_manifest["status"] == "completed"
+    assert run_manifest["dataset_id"] == "fixture_trace"
+    assert run_manifest["outputs"]["meta_dir"] == str(meta_dir)
+    assert run_manifest["outputs"]["logs_dir"] == str(logs_dir)
+    assert set(stage_timings) == {
+        "dataset_registry",
+        "ingest",
+        "packet_extraction",
+        "flow_construction",
+        "sampling",
+        "metrics",
+    }
+    assert "[active] [1/1] fixture_trace starting" in run_log
+    assert "[dataset fixture_trace] [1/6] dataset_registry starting" in run_log
+    assert "[dataset fixture_trace] [6/6] metrics completed" in run_log
 
 
 def _write_fixture_pcap(path: Path) -> None:

@@ -22,8 +22,14 @@ It does not implement methodology, metrics, flow reconstruction, or packet parsi
 - a tuple of `PlannedDatasetRun` objects from `plan_active_runs`
 - a text rendering of the dataset-root execution plan from `render_active_plan`
 - dataset-level stderr runtime feedback during execution
+- persisted runtime artefacts under `results/<dataset>/meta/` and `results/<dataset>/logs/`, including:
+  - `resolved_dataset.yaml`
+  - `run_config.yaml`
+  - `run_manifest.json`
+  - `stage_timings.json`
+  - `run.log`
 
-The module does not write analysis artefacts directly. Downstream pipeline modules still write packet, flow, metric, and plot artefacts.
+The module does not write packet, flow, metric, or plot artefacts directly. Downstream pipeline modules still write those analysis outputs.
 
 ## Methodology and implementation logic
 
@@ -39,6 +45,7 @@ The module does not write analysis artefacts directly. Downstream pipeline modul
   - `data/staged` and `data/processed` are still derived as compatibility roots until the cache-policy slice lands
 - Because plotting still uses the legacy artifact helper, the final SVG path currently includes one extra dataset-id leaf under the dataset plot root.
 - Plot execution is still controlled by the current boolean module gate. The runtime maps the active `plotting_mode` string onto the existing `runtime.enable_plots` flag without changing plotting semantics.
+- The runtime now persists resolved dataset snapshots, run-config snapshots, a run manifest, stage timings, and a plain-text run log for the active entrypoint.
 
 ## Upstream and downstream contracts
 
@@ -51,6 +58,5 @@ The module does not write analysis artefacts directly. Downstream pipeline modul
 ## Assumptions and limitations
 
 - The module is still a bridge layer. It preserves current runnable behaviour while the rest of the repo converges on the v2 architecture.
-- Persisted `meta/` and `logs/` outputs are not implemented yet.
 - Cache policy is parsed but not yet enforced in runtime execution.
 - Legacy CLI compatibility paths still exist alongside this module and should be retired in a later slice.

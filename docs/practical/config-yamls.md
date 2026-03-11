@@ -116,7 +116,7 @@ Important behaviour:
 - `cache_policy` is now explicit in config, but intermediate retention still follows the legacy storage model until the cache slice lands
 - `results_root` is already dataset-scoped for metric tables
 - the current plotting module still writes below a dataset-specific leaf inside each dataset plot root
-- `meta/` and `logs/` persistence are not implemented yet
+- the active entrypoint now persists `meta/` and `logs/` artefacts per dataset
 
 ## Legacy MVP Config Surfaces
 

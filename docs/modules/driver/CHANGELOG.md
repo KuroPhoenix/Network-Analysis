@@ -1,5 +1,12 @@
 # Driver Module Changelog
 
+## 2026-03-11
+
+1. Purpose of modification: expose a thin runtime-observer hook without moving logging or manifest policy into the driver.
+2. What changed: added `ModuleRuntimeEvent` and an optional `observer` callback on `run_pipeline`, emitting per-module start, completion, and failure timing events while preserving the fixed module order and plotting gate.
+3. Impact on other pipeline modules: runtime code can now persist stage timings and progress logs without changing module methodology or artefact semantics.
+4. Required maintenance or follow-up updates: keep observer consumers and driver documentation aligned if the event schema or module sequence changes.
+
 ## 2026-03-10
 
 ### Implementation

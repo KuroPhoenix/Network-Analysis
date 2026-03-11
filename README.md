@@ -131,6 +131,8 @@ python scripts/run_pipeline.py --run-config configs/run_conf.yaml --datasets-roo
 python scripts/run_pipeline.py --run-config configs/run_conf.yaml --datasets-root datasets --plan
 ```
 
+The active entrypoint writes dataset-scoped metric outputs under `results/<dataset>/tables/` and runtime provenance under `results/<dataset>/meta/` and `results/<dataset>/logs/`.
+
 The older frozen-MVP config and batch commands still exist as compatibility surfaces while the v2 migration continues.
 
 One tiny local example from the legacy MVP interface:
